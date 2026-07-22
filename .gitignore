@@ -3,3 +3,6 @@
 /node_modules/
 /ui/dist/
 /ui/node_modules/
+/tmp/
+/.log/
+/tasks/
