@@ -431,4 +431,23 @@ export class LangGraphEngine implements IReactEngine, IReactEngineV2 {
           showConsole,
           maxIterations,
           validationEnabled: this.opts.validateGoal !== false,
-          maxValidatorRetries: this.opts.maxValidatorRet
+          maxValidatorRetries: this.opts.maxValidatorRetries ?? 2,
+          selfHealingEnabled: this.opts.selfHealing !== false,
+        },
+      });
+      finalAnswer = finalState.finalAnswer || "";
+      this.iterationCount = finalState.iteration || 0;
+      this.lastMessages = finalState.messages || [];
+    } catch (err) {
+      await this.telemetry.logError(err, "LangGraphEngine graph invocation failed");
+      this.transition({
+        phase: "error",
+        task: taskDescription,
+        error: { type: "internal", message: err instanceof Error ? err.message : String(err), retryable: false },
+      });
+      throw err;
+    }
+
+    // ── Post-run processing ──
+    if (this.cancelled) {
+      this.lastOutcome = "partial_success

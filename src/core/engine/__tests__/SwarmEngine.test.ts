@@ -320,8 +320,6 @@ describe("SwarmEngine", () => {
 
       await engine.run("test task");
 
-      // Observer may still be called if it was already registered before unsubscribe
-      // But subsequent calls should not happen
       expect(observer).not.toHaveBeenCalled();
     });
 
@@ -463,4 +461,30 @@ describe("SwarmEngine", () => {
       });
 
       // Mock generateWbs to return a WBS with circular deps
-      (
+      (engine as any).generateWbs = vi.fn(async () => CIRCULAR_DEP_WBS);
+
+      const result = await engine.run("test task");
+      expect(result).toBe("Task completed successfully.");
+    });
+
+    it("falls back to single-agent mode on self-referential dependencies", async () => {
+      const engine = new SwarmEngine(llm, telemetry, {
+        maxIterations: 1,
+        validateGoal: false,
+        persistArtifacts: false,
+      });
+
+      (engine as any).generateWbs = vi.fn(async () => SELF_DEP_WBS);
+
+      const result = await engine.run("test task");
+      expect(result).toBe("Task completed successfully.");
+    });
+
+    it("parses multi-task WBS correctly", async () => {
+      const engine = new SwarmEngine(llm, telemetry, {
+        maxIterations: 1,
+        validateGoal: false,
+        persistArtifacts: false,
+      });
+
+      (engine as any

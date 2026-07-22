@@ -168,7 +168,7 @@ export class SwarmEngine implements IReactEngine, IReactEngineV2 {
   }
 
   private getTaskFromState(): string {
-    if ("task" in this.state) return this.state.task;
+    if ("task" in this.state) return (this.state as any).task;
     return "";
   }
 
@@ -454,4 +454,366 @@ export class SwarmEngine implements IReactEngine, IReactEngineV2 {
 
     if (this.opts.consoleThoughts !== false && this.health.scores.length > 0) {
       this.io.log(`📈 Final health score: ${this.getHealthScore()}/100 (${this.health.scores.length} scored steps)`);
-   
+    }
+
+    return finalContent;
+  }
+
+  // ─── WBS Generation ────────────────────────────────────────────────────────────
+
+  private async generateWbs(taskDescription: string, skills: LoadedSkill[]): Promise<string> {
+    const skillContext = skills.length
+      ? `\n\nThe following specialized skills are relevant to this task:\n\n${skills
+          .map((s) => `## ${s.header.name} (${s.header.role})\n${s.body}`)
+          .join("\n\n")}`
+      : "";
+
+    const wbsPrompt: LlmMessage[] = [
+      {
+        role: "system",
+        content:
+          buildProtocolPrompt(this.cwd) +
+          "You are a Work Breakdown Structure (WBS) planner for a Swarm Orchestration Engine. " +
+          "Produce a detailed WBS for the task below. Each WBS item must be a self-contained unit of work " +
+          "that a swarm agent can execute independently. " +
+          "Format as a markdown table with columns: ID | Description | Dependencies | Instructions. " +
+          "Use IDs like T1, T2, T3, etc. Dependencies should be comma-separated IDs or 'None'. " +
+          "Include at least 2-5 tasks that decompose the work into parallelizable units." +
+          skillContext,
+      },
+      { role: "user", content: taskDescription },
+    ];
+
+    const response = await this.llm.complete(wbsPrompt);
+    this.addUsage(response.usage);
+    return response.content.trim();
+  }
+
+  private parseWbsTasks(wbsPlan: string): WbsTask[] {
+    const lines = wbsPlan.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+    const tasks: WbsTask[] = [];
+    let inTable = false;
+
+    for (const line of lines) {
+      if (line.startsWith("|") && line.endsWith("|")) {
+        if (line.includes("---")) continue;
+        const cells = line.split("|").map((c) => c.trim()).filter((c) => c.length > 0);
+        if (cells.length >= 3) {
+          const id = cells[0].trim();
+          const description = cells[1]?.trim() || "";
+          const depsRaw = cells[2]?.trim() || "";
+          const details = cells.slice(3).join(" | ").trim();
+          if (id.toLowerCase() === "id") continue;
+          const dependencies = depsRaw.toLowerCase() === "none" || depsRaw === ""
+            ? []
+            : depsRaw.split(",").map((d) => d.trim()).filter((d) => d.length > 0);
+          tasks.push({
+            id,
+            description,
+            details,
+            dependencies,
+            status: "pending",
+            consecutiveFailures: 0,
+          });
+        }
+        inTable = true;
+      } else if (inTable) {
+        break;
+      }
+    }
+    return tasks;
+  }
+
+  private validateWbsDependencies(): string[] {
+    const errors: string[] = [];
+    const adj = new Map<string, string[]>();
+    for (const task of this.wbsTasks) adj.set(task.id, task.dependencies);
+
+    for (const task of this.wbsTasks) {
+      if (task.dependencies.includes(task.id)) {
+        errors.push(`Task ${task.id} has a self-referential dependency.`);
+      }
+    }
+
+    const allIds = new Set(this.wbsTasks.map((t) => t.id));
+    for (const task of this.wbsTasks) {
+      for (const dep of task.dependencies) {
+        if (!allIds.has(dep)) {
+          errors.push(`Task ${task.id} depends on unknown task ${dep}.`);
+        }
+      }
+    }
+
+    const visited = new Set<string>();
+    const inStack = new Set<string>();
+    const dfs = (node: string): boolean => {
+      if (inStack.has(node)) return true;
+      if (visited.has(node)) return false;
+      visited.add(node);
+      inStack.add(node);
+      for (const dep of adj.get(node) || []) {
+        if (dfs(dep)) return true;
+      }
+      inStack.delete(node);
+      return false;
+    };
+
+    for (const task of this.wbsTasks) {
+      if (!visited.has(task.id) && dfs(task.id)) {
+        errors.push(`Circular dependency detected involving task ${task.id}.`);
+      }
+    }
+    return errors;
+  }
+
+  private async dispatchReadyTasks(): Promise<void> {
+    const readyTasks = this.wbsTasks.filter(
+      (t) => t.status === "pending" && t.dependencies.every((dep) => {
+        const dt = this.wbsTasks.find((wt) => wt.id === dep);
+        return dt && dt.status === "completed";
+      })
+    );
+    if (readyTasks.length === 0) return;
+
+    const maxParallel = this.opts.maxParallelAgents ?? 5;
+    const batch = readyTasks.slice(0, maxParallel);
+    this.io.log(`\n🚀 Dispatching ${batch.length} ready task(s): ${batch.map((t) => t.id).join(", ")}`);
+
+    for (const task of batch) task.status = "in_progress";
+
+    const results = await Promise.allSettled(
+      batch.map(async (task) => {
+        const agentTimeout = this.opts.agentTimeoutMs ?? DEFAULT_AGENT_TIMEOUT_MS;
+        const agentMaxIterations = this.opts.swarmAgentMaxIterations ?? 15;
+        const agentInstructions = task.details
+          ? `Task ${task.id}: ${task.description}\n\nInstructions: ${task.details}`
+          : `Task ${task.id}: ${task.description}`;
+
+        const agent = new LeanEngine(this.llm, this.telemetry, {
+          maxIterations: agentMaxIterations,
+          cwd: this.cwd,
+          validateGoal: false,
+          selfHealing: false,
+          consoleThoughts: false,
+        });
+
+        const timeoutPromise = new Promise<{ status: "failed"; summary: string; error: string }>((_, reject) => {
+          setTimeout(() => reject(new Error(`Task ${task.id} timed out after ${agentTimeout}ms`)), agentTimeout);
+        });
+
+        const runPromise = agent.run(agentInstructions).then((summary) => ({
+          status: agent.getLastOutcome() === "completed" ? "completed" as const : "iteration_limit" as const,
+          summary,
+          iterationCount: agent.getIterationCount(),
+        }));
+
+        return await Promise.race([runPromise, timeoutPromise]) as any;
+      })
+    );
+
+    for (let i = 0; i < batch.length; i++) {
+      const task = batch[i];
+      const result = results[i];
+      if (result.status === "fulfilled") {
+        const ar = result.value;
+        task.status = ar.status === "completed" ? "completed" : "failed";
+        task.result = ar.summary;
+        task.iterationCount = ar.iterationCount || 0;
+        task.consecutiveFailures = ar.status === "completed" ? 0 : (task.consecutiveFailures || 0) + 1;
+        this.io.log(`  ${task.status === "completed" ? "✅" : "⚠️"} Task ${task.id} ${task.status === "completed" ? "completed" : "hit iteration limit"} (${ar.iterationCount || "?"} iterations)`);
+      } else {
+        const error = result.reason?.message || String(result.reason || "Unknown error");
+        task.status = "failed";
+        task.error = error;
+        task.consecutiveFailures = (task.consecutiveFailures || 0) + 1;
+        this.io.log(`  ❌ Task ${task.id} failed: ${error}`);
+        if (task.consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
+          task.status = "skipped";
+          this.io.log(`  🔇 Task ${task.id} skipped (circuit breaker: ${task.consecutiveFailures} consecutive failures)`);
+        }
+      }
+    }
+  }
+
+  private async runSingleAgent(taskDescription: string, skills: LoadedSkill[], runOpts: RunOptions): Promise<string> {
+    this.io.log("\n═══════════════════════════════════════════");
+    this.io.log("  SWARM ENGINE — Fallback: Single-Agent Mode");
+    this.io.log("═══════════════════════════════════════════\n");
+
+    const agent = new LeanEngine(this.llm, this.telemetry, {
+      maxIterations: this.opts.maxIterations ?? 30,
+      cwd: this.cwd,
+      validateGoal: this.opts.validateGoal,
+      maxValidatorRetries: this.opts.maxValidatorRetries,
+      selfHealing: this.opts.selfHealing,
+      consoleThoughts: this.opts.consoleThoughts,
+      io: this.io,
+    });
+
+    const result = await agent.run(taskDescription, runOpts);
+    this.lastOutcome = agent.getLastOutcome();
+    this.lastMessages = agent.getLastMessages();
+    this.cumulativeUsage = agent.getCumulativeUsage() || this.cumulativeUsage;
+    this.iterationCount = agent.getIterationCount();
+    this.partialSuccess = agent.getPartialSuccess();
+    return result;
+  }
+
+  // ─── Orchestrator Prompt Building ──────────────────────────────────────────────
+
+  private buildSwarmSystemPrompt(skills: LoadedSkill[], taskDescription: string): string {
+    const protocol = buildProtocolPrompt(this.cwd);
+    const base =
+      "You are the Orchestrating Agent in a Swarm Engine. Your role is to coordinate multiple " +
+      "swarm agents to complete a complex task in parallel.\n\n" +
+      "You have the following swarm management tools:\n" +
+      "- swarm_assign_tool: Assign a WBS task to a swarm agent for execution\n" +
+      "- swarm_status_tool: Check the status of all WBS tasks\n" +
+      "- swarm_result_tool: Get the result of a completed WBS task\n" +
+      "- swarm_retry_tool: Retry a failed WBS task\n" +
+      "- swarm_cancel_tool: Cancel a running WBS task\n" +
+      "- swarm_report_tool: Generate a summary report of all tasks\n\n" +
+      "The WBS has already been created. Your job is to:\n" +
+      "1. Assign pending tasks to swarm agents using swarm_assign_tool\n" +
+      "2. Monitor task progress using swarm_status_tool\n" +
+      "3. Handle failures by retrying or reassigning tasks\n" +
+      "4. When all tasks are complete, call swarm_report_tool to generate the final report\n\n" +
+      "Tasks with no dependencies are automatically dispatched in parallel. " +
+      "You only need to manage tasks that require orchestration decisions.";
+
+    const skillBlocks = skills.length
+      ? `\n\nThe following specialized skill directives are loaded for this task:\n\n${skills
+          .map((s) => `## Skill: ${s.header.name} (${s.header.role})\n${s.body}`)
+          .join("\n\n")}`
+      : "";
+
+    return `${protocol}<task_context>\n${base}${skillBlocks}\n</task_context>`;
+  }
+
+  private buildOrchestratorPrompt(taskDescription: string): string {
+    const taskSummary = this.wbsTasks
+      .map((t) => {
+        const deps = t.dependencies.length > 0 ? t.dependencies.join(", ") : "None";
+        return `- ${t.id}: ${t.description} [deps: ${deps}] [status: ${t.status}]`;
+      })
+      .join("\n");
+    return `Task: ${taskDescription}\n\nCurrent WBS State:\n${taskSummary}\n\nPlease manage the swarm agents to complete this task. Use the swarm tools to assign, monitor, and report on task progress.`;
+  }
+
+  private getSwarmTools(): ToolSchema[] {
+    return [
+      {
+        type: "function",
+        function: {
+          name: "swarm_assign_tool",
+          description: "Assign a WBS task to a swarm agent for execution.",
+          parameters: {
+            type: "object",
+            properties: { taskId: { type: "string", description: "The WBS task ID to assign" } },
+            required: ["taskId"],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "swarm_status_tool",
+          description: "Check the current status of all WBS tasks or a specific task.",
+          parameters: {
+            type: "object",
+            properties: { taskId: { type: "string", description: "Optional: specific task ID to check" } },
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "swarm_result_tool",
+          description: "Get the result of a completed WBS task.",
+          parameters: {
+            type: "object",
+            properties: { taskId: { type: "string", description: "The WBS task ID" } },
+            required: ["taskId"],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "swarm_retry_tool",
+          description: "Retry a failed WBS task.",
+          parameters: {
+            type: "object",
+            properties: { taskId: { type: "string", description: "The WBS task ID to retry" } },
+            required: ["taskId"],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "swarm_cancel_tool",
+          description: "Cancel a running WBS task.",
+          parameters: {
+            type: "object",
+            properties: { taskId: { type: "string", description: "The WBS task ID to cancel" } },
+            required: ["taskId"],
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "swarm_report_tool",
+          description: "Generate a final summary report of all WBS tasks.",
+          parameters: {
+            type: "object",
+            properties: { includeDetails: { type: "boolean", description: "Whether to include detailed results" } },
+          },
+        },
+      },
+    ];
+  }
+
+  private async handleSwarmToolCall(toolCall: ToolCall): Promise<string> {
+    const name = toolCall.function.name;
+    let args: Record<string, any> = {};
+    try { args = JSON.parse(toolCall.function.arguments); } catch { return `Error: Failed to parse arguments for ${name}: ${toolCall.function.arguments}`; }
+
+    switch (name) {
+      case "swarm_assign_tool": {
+        const taskId = args.taskId;
+        const task = this.wbsTasks.find((t) => t.id === taskId);
+        if (!task) return `Error: Task ${taskId} not found in WBS.`;
+        if (task.status !== "pending") return `Error: Task ${taskId} is already ${task.status}. Cannot assign.`;
+        const unmetDeps = task.dependencies.filter((dep) => {
+          const dt = this.wbsTasks.find((t) => t.id === dep);
+          return !dt || dt.status !== "completed";
+        });
+        if (unmetDeps.length > 0) return `Error: Task ${taskId} has unmet dependencies: ${unmetDeps.join(", ")}. Complete those first.`;
+        task.status = "in_progress";
+        this.dispatchReadyTasks();
+        return `Task ${taskId} assigned and dispatched to swarm agent.`;
+      }
+      case "swarm_status_tool": {
+        if (args.taskId) {
+          const task = this.wbsTasks.find((t) => t.id === args.taskId);
+          if (!task) return `Error: Task ${args.taskId} not found.`;
+          return `Task ${task.id}: ${task.description} [status: ${task.status}]${task.error ? " [error: " + task.error + "]" : ""}`;
+        }
+        const lines = this.wbsTasks.map((t) => `- ${t.id}: ${t.description} [status: ${t.status}]${t.error ? " [error: " + t.error + "]" : ""}`);
+        const completed = this.wbsTasks.filter((t) => t.status === "completed").length;
+        const failed = this.wbsTasks.filter((t) => t.status === "failed" || t.status === "skipped").length;
+        const pending = this.wbsTasks.filter((t) => t.status === "pending" || t.status === "in_progress").length;
+        return `WBS Status: ${completed} completed, ${failed} failed/skipped, ${pending} pending/in_progress\n${lines.join("\n")}`;
+      }
+      case "swarm_result_tool": {
+        const task = this.wbsTasks.find((t) => t.id === args.taskId);
+        if (!task) return `Error: Task ${args.taskId} not found.`;
+        if (task.status !== "completed") return `Task ${args.taskId} is not completed yet (status: ${task.status}).`;
+        return `Result for ${task.id}: ${task.description}\n${task.result || "(no result recorded)"}`;
+      }
+      case "swarm_retry_tool": {
+        const task = this.wbsTasks.find((t) => t.id === args.taskId);
+        if (!task) return `Error: Task ${args.taskId} not found.`;
+        if (task.status !== "failed" && task.status !== "skipped") return `Error: Task ${args.taskId} is ${task.status}, not
