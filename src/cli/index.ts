@@ -19,6 +19,7 @@ import { dockerComposeUp } from "../tools/dockerComposeDeployTool.js";
 import { deployWorkspaceViaSsh } from "../tools/dockerDeploySshTool.js";
 import fs from "node:fs";
 import path from "node:path";
+import { spawn } from "node:child_process";
 
 const program = new Command();
 program.name("xcoder").description("xcoder — ReAct CLI agent with hot-pluggable role skills").version("0.1.0");
@@ -41,6 +42,7 @@ program
   .option("--diagnose-live", "run the 7-point ReAct diagnostic suite against the real configured LLM: iteration stopping, restart-approval, duplicate-action avoidance, tool/skill usage, ground-up deployable app, bug fixing, and full SDLC")
   .option("--diagnose-out <path>", "where to write the live diagnostics report markdown (default: reports/live-diagnostics-<timestamp>.md)")
   .option("--serve", "start the xcoder HTTP API server")
+  .option("--ui", "start both the xcoder HTTP API server and the UI frontend")
   .option("--port <number>", "port for the API server (default: 3001)", parseInt)
   .option("--host <address>", "host for the API server (default: 0.0.0.0)")
   .option("--deploy", "trigger deploy mode — runs docker compose up -d --build")
@@ -110,6 +112,43 @@ program
       console.log(report.markdown);
       console.log(`\nFull report written to ${outPath}`);
       console.log(`Result: ${report.summary.passed}/${report.summary.total} diagnostics passed.`);
+      return;
+    }
+
+    if (opts.ui) {
+      const port = opts.port || 3001;
+      const host = opts.host || "0.0.0.0";
+
+      console.log("🚀 Starting xcoder API server and UI frontend...\n");
+
+      // 1. Start the API server
+      startApiServer({ port, host });
+
+      // 2. Resolve UI path (assuming UI package/folder is in 'ui' or root)
+      const uiDir = path.resolve(cwd, "ui"); // adjust path to where xcoder-ui lives
+
+      if (!fs.existsSync(uiDir)) {
+        console.error(`❌ UI directory not found at: ${uiDir}`);
+        process.exit(1);
+      }
+
+      // 3. Spawn the Vite dev server process for UI
+      const uiProcess = spawn("npm", ["run", "dev"], {
+        cwd: uiDir,
+        stdio: "inherit",
+        shell: true,
+      });
+
+      uiProcess.on("error", (err) => {
+        console.error("❌ Failed to start UI server:", err);
+      });
+
+      // Cleanup spawned UI process when CLI exits
+      process.on("SIGINT", () => {
+        uiProcess.kill("SIGINT");
+        process.exit(0);
+      });
+
       return;
     }
 
