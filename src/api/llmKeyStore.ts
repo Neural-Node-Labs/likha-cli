@@ -1,0 +1,39 @@
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import type { LlmConfig } from "../config/loadConfig.js";
+
+const STORE_PATH = path.join(os.homedir(), ".xcoder", "llm-key.json");
+
+export function getStoredApiKey(): string | undefined {
+  if (!fs.existsSync(STORE_PATH)) return undefined;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(STORE_PATH, "utf-8"));
+    return typeof parsed.apiKey === "string" ? parsed.apiKey : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function hasStoredApiKey(): boolean {
+  return Boolean(getStoredApiKey());
+}
+
+/** file mode 0600: readable/writable by the owner only — this is a plaintext local file, not a
+ *  proper secrets store, so restricting OS-level file permissions is the minimum reasonable bar. */
+export function setStoredApiKey(apiKey: string): void {
+  fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
+  fs.writeFileSync(STORE_PATH, JSON.stringify({ apiKey }), { encoding: "utf-8", mode: 0o600 });
+}
+
+export function clearStoredApiKey(): void {
+  if (fs.existsSync(STORE_PATH)) fs.unlinkSync(STORE_PATH);
+}
+
+/** Makes any stored key visible to the existing process.env[config.api_key_env] lookup that
+ *  deepseekClient.ts already does — no changes needed there. Call before constructing a client. */
+export function applyStoredApiKey(config: LlmConfig): void {
+  const stored = getStoredApiKey();
+  if (stored) process.env[config.api_key_env] = stored;
+}
+

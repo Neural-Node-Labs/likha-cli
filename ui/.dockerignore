@@ -1,0 +1,42 @@
+# ─── Dependencies ────────────────────────────────────────────────────────────
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Build output ────────────────────────────────────────────────────────────
+dist
+
+# ─── Version control ─────────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ─── OS artifacts ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.vscode
+.idea
+*.iml
+
+# ─── Secrets ─────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.production
+
+# ─── Docker files (not needed inside the build context) ──────────────────────
+Dockerfile
+nginx.conf
+
+# ─── Test suites ─────────────────────────────────────────────────────────────
+tests/
+e2e/
+
+# ─── Documentation ───────────────────────────────────────────────────────────
+*.md
+
