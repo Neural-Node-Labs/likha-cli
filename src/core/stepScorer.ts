@@ -1,4 +1,9 @@
 import { ToolCallRecord, findDuplicateActions } from "./duplicateActionDetector.js";
+import {
+  checkDuplicateReasonRolling,
+  maxDuplicatePenalty,
+  formatDuplicateReason,
+} from "./iterationReasonDedup.js";
 
 export interface StepScore {
   score: number; // 0-100
@@ -8,10 +13,12 @@ export interface StepScore {
 export interface HealthState {
   scores: number[]; // rolling history, oldest first
   callHistory: ToolCallRecord[]; // full run history, reused for duplicate-action detection
+  /** Iteration reasons/thoughts from each step, in chronological order. */
+  iterationReasons: string[];
 }
 
 export function createHealthState(): HealthState {
-  return { scores: [], callHistory: [] };
+  return { scores: [], callHistory: [], iterationReasons: [] };
 }
 
 /**
@@ -21,15 +28,21 @@ export function createHealthState(): HealthState {
  * task forward", not a quality judgment: a passing test run scores well, a repeated no-op
  * action scores poorly, regardless of how clever the reasoning behind it was.
  *
- * The two signals that matter most:
+ * The three signals that matter most:
  *   - Did the tool call error?
  *   - Is this an exact repeat of an earlier (tool, args) pair that already produced this exact
  *     same observation? (Reusing duplicateActionDetector.ts's definition of "duplicate" —
  *     same call, same result, meaning nothing new was learned by repeating it.)
+ *   - Does the iteration reason/thought repeat a previous iteration's reasoning?
+ *     (Using iterationReasonDedup.ts's three-pass matching: exact, case-insensitive, fuzzy.)
+ *
+ * ⚠️ NOTE: The `thought` parameter is optional and currently NOT passed by any call site.
+ * The duplicate iteration reason check is dormant in production. See iterationReasonDedup.ts
+ * for the full status and activation instructions.
  */
 export function scoreStep(
   state: HealthState,
-  step: { tool: string; args: unknown; observation: unknown; isError: boolean }
+  step: { tool: string; args: unknown; observation: unknown; isError: boolean; thought?: string }
 ): StepScore {
   state.callHistory.push({ tool: step.tool, args: step.args, observation: step.observation });
 
@@ -50,6 +63,23 @@ export function scoreStep(
     score -= 35;
     reasons.push("repeated an identical action with an identical result — no new information gained");
   }
+
+  // Check for duplicate iteration reason (thought/reasoning).
+  // Only check if we have a thought string and at least one prior reason to compare against.
+  if (step.thought && state.iterationReasons.length > 0) {
+    const reasonViolations = checkDuplicateReasonRolling(
+      state.iterationReasons,
+      step.thought
+    );
+    if (reasonViolations.length > 0) {
+      const penalty = maxDuplicatePenalty(reasonViolations);
+      score -= penalty;
+      reasons.push(formatDuplicateReason(reasonViolations));
+    }
+  }
+
+  // Record the iteration reason for future duplicate checks (even if empty — preserves indexing).
+  state.iterationReasons.push(step.thought ?? "");
 
   // Mild reward for actions that typically represent real forward progress on a coding task.
   if (!step.isError && (step.tool === "write_edit_tool" || step.tool === "run_command_tool")) {
@@ -72,4 +102,3 @@ export function rollingHealth(state: HealthState, window = 5): number {
 function sameArgs(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
-
