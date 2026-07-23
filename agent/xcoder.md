@@ -54,6 +54,10 @@ injected into the system prompt alongside whatever skills get routed for the tas
 - **Simplicity First:** Make every change as simple as possible. Impact minimal code.
 - **No Laziness:** Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact:** Only touch what's necessary. No side effects with new bugs.
-- **Skip Reading Compiled Code:** Don't waste time reading compiled code and logs. Skip Folders **.log**, **.agent**, **dist**, **node_modules**. Focus on source files .
-- **filesystem-management**: Use the filesystem-management skill to understand the files structure, if required fresh index use the tools indexing.
+
 - **Goal Validation:** Always validate your work with the goal validator. If it fails, re-plan and fix. Never assume it will pass without proof.
+
+## Understanding the project structure
+- **filesystem-management**: Use the filesystem-management skill to understand the files structure, if required fresh index use the tools indexing.
+- **Skip Reading Compiled Code:** Don't waste time reading compiled code and logs. Skip Folders **.log**, **.agent**, **dist**, **node_modules**. Focus on source files .
+- CRITICAL always use this skills **filesystem-management**

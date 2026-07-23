@@ -45,6 +45,15 @@ export interface AgentReporter {
   totalUsage(cumulative: CumulativeUsage, callCount: number, indent?: number): void;
   phaseStats(phaseNumber: number, phaseTitle: string, tokens: number, iterations: number, indent?: number): void;
 
+  /**
+   * Display per-task token usage summary.
+   * Shows a breakdown by phase and the running total for each task, formatted with locale commas.
+   *
+   * @param taskTokenSummaries - Map of taskId ? { phases: Record<phaseId, ParsedTokenCounts>, runningTotal: number }
+   * @param indent - Optional indentation level for nested output
+   */
+  taskTokenSummary(taskTokenSummaries: Record<string, { phases: Record<string, { input: number; output: number; cached: number; total: number; expectedTotal: number }>; runningTotal: number }>, indent?: number): void;
+
   /** Start/stop a "thinking..." indicator around a long-running call. Purely cosmetic. */
   spinnerStart(label: string): void;
   spinnerStop(message?: string): void;
@@ -60,4 +69,15 @@ export interface AgentPrompter {
   confirm(message: string, opts?: { defaultValue?: boolean }): Promise<boolean>;
 }
 
-export interface AgentIO extends AgentReporter, AgentPrompter {}
+/** Two-way interaction: the engine needs a free-text answer from the user. */
+export interface AgentPrompterV2 {
+  /**
+   * Ask the user an open-ended question and wait for a text response.
+   * Implementations that have no human attached (AutoIO) resolve immediately using
+   * `opts.defaultValue`. Implementations with a human attached (CliIO) actually prompt.
+   * Returns the user's answer as a string, or null if the user cancelled/declined to answer.
+   */
+  prompt(question: string, opts?: { defaultValue?: string }): Promise<string | null>;
+}
+
+export interface AgentIO extends AgentReporter, AgentPrompter, AgentPrompterV2 {}

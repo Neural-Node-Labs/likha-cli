@@ -62,6 +62,33 @@ export interface ToolCall {
   function: { name: string; arguments: string }; // arguments is a JSON string
 }
 
+/**
+ * A structured clarification request that the LLM can emit when it needs user input
+ * to proceed. This is the data model for the "clarification" channel — distinct from
+ * normal tool calls and final answers.
+ *
+ * The LLM emits this via the `clarification_tool` (a dedicated tool call) or as a
+ * structured field in the response when the system detects the model is asking for
+ * input rather than taking action or providing a final answer.
+ *
+ * @example
+ * ```ts
+ * {
+ *   question: "Which database should I use for the user profiles?",
+ *   context: "The task requires storing user profile data. I found PostgreSQL and SQLite as options.",
+ *   options: ["PostgreSQL", "SQLite"]
+ * }
+ * ```
+ */
+export interface ClarificationRequest {
+  /** The question the LLM needs answered to proceed. */
+  question: string;
+  /** Context explaining why the question is being asked and what information is available. */
+  context: string;
+  /** Optional list of predefined options the user can choose from. */
+  options?: string[];
+}
+
 export interface LlmUsage {
   promptTokens: number;
   completionTokens: number;

@@ -311,7 +311,24 @@ export async function dispatchToolCall(call: ToolCall, cwd: string = process.cwd
 
   try {
     switch (name) {
-        case "conversation_tool": {
+                case "clarification_tool": {
+          // The clarification_tool is handled by the orchestrator/engine before dispatch.
+          // If it reaches the dispatcher, it means the engine didn't intercept it — return
+          // the clarification request as the observation so the engine can process it.
+          return {
+            toolCallId: call.id,
+            toolName: name,
+            observation: {
+              type: "clarification_request",
+              question: args.question,
+              context: args.context,
+              options: args.options,
+              message: "Clarification requested — the engine should intercept this before dispatch."
+            },
+            isError: false,
+          };
+        }
+case "conversation_tool": {
           // Print the response directly to the console so the user sees it immediately
           console.log(`\n🤖 xcoder: ${args.reply}`);
 
