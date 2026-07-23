@@ -1,165 +1,256 @@
 # xcoder
 
-A ReAct CLI coding agent with a hot-pluggable skill system, a swappable orchestration engine, and
-an optional web UI/API layer. DeepSeek is the default LLM provider.
+**xcoder** — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.
 
-For a deeper look at how the system is put together — the engine/IO abstraction, the scoring model,
-the CLI/database boundary, the skill system's routing logic — see **[blueprint.md](./blueprint.md)**.
-This file is the "how do I run it" doc; that one is the "how does it work" doc.
+- **Version:** 0.2.0
+- **License:** MIT
+- **Engine:** TypeScript (Node.js), ReAct loop with multiple engine implementations
 
-## What's here
+---
 
-- **CLI** (`xcoder`) — run one-off tasks, interactive chat, project indexing, deploy automation.
-- **Skill system** — `agent/skills/<name>/SKILL.md` files that route to specialized instructions
-  based on the task description (role skills like `software-engineer`/`qa-engineer`, and DevOps
-  skills like `docker`/`kubernetes`/`aws`/`openshift` — run `xcoder --skills` for the full list).
-- **API server + web UI** — an Express API (`src/api/`) and a React UI (`ui/`) for browser-based
-  chat, telemetry, plan/phase review, and admin.
-- **Swappable engine** — the ReAct loop is one *implementation* of an `IReactEngine` interface;
-  the CLI and API both go through an `EngineRegistry` rather than depending on it directly.
+## Table of Contents
 
-## Requirements
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Engines](#engines)
+- [Duplicate Action Detection](#duplicate-action-detection)
+- [Self-Healing Health Score](#self-healing-health-score)
+- [Goal Validation](#goal-validation)
+- [Configuration](#configuration)
+- [Development](#development)
 
-- Node.js 18+
-- A DeepSeek API key (or an Anthropic key as fallback) — see [Configuration](#configuration)
-- Docker, if you plan to use `--deploy --docker` or the provided `docker-compose` setup
+---
 
-## Quick start
+## Overview
 
-> **Note on `npm install`:** `package.json` defines an `install` lifecycle script
-> (`scripts/install.sh`) that is **not present in this checkout** — running plain `npm install`
-> will fail with `scripts/install.sh: No such file or directory`. Use `--ignore-scripts` until
-> that script is restored (see [Known gaps](#known-gaps)).
+xcoder is a CLI agent that follows the **ReAct** (Reasoning + Acting) pattern: it iteratively
+thinks about a task, calls tools to gather information or make changes, observes the results,
+and repeats until the task is complete. It supports multiple orchestration engines, hot-pluggable
+skill directives, and a built-in self-healing mechanism that detects when the agent is stuck.
 
-```bash
-# 1. Install dependencies (skip the missing lifecycle script — see note above)
-npm install --ignore-scripts
+### Key Features
 
-# 2. Configure your LLM key
-cp .env.example .env
-# edit .env and set DEEPSEEK_API_KEY
+- **ReAct loop** with Search → Action → Validation phases
+- **Multiple engine implementations** — standard ReAct, LeanEngine, LangGraph, Swarm
+- **Duplicate action detection** — prevents wasteful repeated tool calls
+- **Self-healing health scoring** — detects stalled progress and nudges the agent
+- **Goal validation** — independent verification before accepting completion
+- **Phase planning** — divides complex tasks into isolated phases
+- **Subagent delegation** — offloads work to isolated sub-agents
+- **Context compaction** — collapses stale file reads to save tokens
+- **Persistent task history** — SQLite/Postgres-backed
 
-# 3. Build
-npm run build
+---
 
-# 4. Run a task
-node dist/cli/index.js --task "describe what this repository does"
-
-# — or, once installed globally / linked —
-xcoder --task "describe what this repository does"
-```
-
-### Interactive chat
-
-```bash
-xcoder --chat
-```
-
-### Indexing a workspace
-
-```bash
-xcoder --index          # writes .agent/index/ for the current directory
-xcoder --skills         # list every loaded skill, its role, and its triggers
-```
-
-## CLI reference
+## Architecture
 
 ```
-xcoder [task]                        run a task (positional arg == --task)
-  --task <description>               same as above, explicit form
-  --chat                             interactive chat loop
-  --index                            index the current workspace
-  --skills                           list loaded skills
-  --lesson <text>                    record a lesson to tasks/lessons.md
-
-  --plan / --no-plan                 force Plan Mode on/off (default: heuristic)
-  --single-phase                     disable phase-based planning, run as one ReAct loop
-  --full-context-token               keep every file-read snapshot instead of compacting stale ones
-  --isolated-workspace               run tool ops against ./workspace-agent instead of live files
-  --auto                             auto-answer every interactive prompt (CI/automation mode)
-  --engine <name>                    which registered orchestration engine to use (default: "react")
-
-  --audit-react                      run the built-in bug-fixing scenario battery
-  --diagnose-live                    run the 7-point live diagnostic suite against the real LLM
-
-  --serve                            start the HTTP API server
-  --port <number> / --host <addr>    API server bind address (default: 3001 / 0.0.0.0)
-
-  --deploy [--docker]                deploy via `docker compose up -d --build`
-    --llm true|false                 route the deploy through the LLM/engine (diagnose+fix) vs. direct
-    --remote <ip>                    deploy to a remote Docker host over SSH instead of locally
-    --remote-path <path>             remote directory (default: /opt/xcoder)
+src/
+├── cli/              # CLI entry point (Commander)
+├── api/              # Express API server
+├── core/             # Core orchestration logic
+│   ├── engine/       # Engine implementations
+│   ├── io/           # I/O abstractions (AutoIO, AgentIO)
+│   └── ...
+├── tools/            # Tool implementations (20+ tools)
+├── llm/              # LLM client (DeepSeek, mock)
+├── indexing/         # Workspace indexing
+├── config/           # Configuration loading
+├── db/               # Database layer (SQLite, Postgres)
+├── remote/           # SSH/SCP remote operations
+├── telemetry/        # Logging and telemetry
+└── test/             # Test suite
 ```
 
-`--deploy --docker --remote <ip> --llm true|false` deploys to a remote Docker host over SSH;
-`--llm` toggles whether the deploy is agent-mediated (can diagnose and fix a failed build) or a
-direct `docker compose` invocation. Remote deploys require `REMOTE_SSH_USER` and
-`REMOTE_SSH_PASSWORD` set in `.env`.
+---
+
+## Engines
+
+xcoder provides four engine implementations, all interchangeable via the `IReactEngine` interface:
+
+| Engine | Description |
+|--------|-------------|
+| **ReActOrchestrator** | Full-featured default engine with plan mode, phase planning, subagent delegation, and goal validation |
+| **LeanEngine** | Focused, self-contained ReAct loop — the core loop without plan mode or subagents |
+| **LangGraphEngine** | ReAct loop built on `@langchain/langgraph`'s StateGraph with explicit two-node state machine |
+| **SwarmEngine** | Parallel swarm orchestration with WBS decomposition and concurrent agent dispatch |
+
+---
+
+## Duplicate Action Detection
+
+xcoder includes a deterministic duplicate-action detection system that prevents the agent from
+wasting iterations on repeated tool calls that produce no new information. This is a core part
+of the self-healing mechanism and runs on every tool step at zero additional LLM cost.
+
+### What Constitutes a Duplicate
+
+A tool call is flagged as a **duplicate action** when **all three** of these conditions are met:
+
+1. **Same tool** — the exact same tool name (e.g., `run_command_tool`, `read_tool`)
+2. **Same arguments** — the exact same arguments (compared via stable JSON serialization)
+3. **Same observation** — the tool produced the **identical** result every time it was called
+
+This deliberately does **not** flag legitimate re-runs. For example, running a test command
+after editing a file is expected ReAct behavior — the observation will be different because
+the underlying state changed. Only genuinely wasteful repeats (same call, same result, no new
+information) are flagged.
+
+### How Detection Works
+
+Detection is implemented in `src/core/duplicateActionDetector.ts`:
+
+1. **Grouping** — All tool call records in the current run are grouped by a composite key of
+   `tool::stableStringify(args)`.
+2. **Filtering** — Groups with fewer than 2 calls are ignored (no repetition).
+3. **Observation comparison** — For groups with 2+ calls, the observations are compared using
+   stable JSON serialization. If every observation in the group is identical, the group is
+   flagged as a violation.
+4. **Reporting** — Each violation records the tool name, arguments, occurrence count, and a
+   human-readable reason.
+
+The `stableStringify` function ensures deterministic key ordering for object arguments,
+so `{a:1, b:2}` and `{b:2, a:1}` produce the same key and are correctly recognized as
+the same call.
+
+### What Happens When a Duplicate Is Found
+
+When a duplicate action is detected, two things happen:
+
+#### 1. Health Score Penalty
+
+The `stepScorer.ts` module (`scoreStep` function) applies a **-35 point penalty** to the
+step's health score when it's identified as a duplicate. The scoring logic:
+
+| Condition | Score Adjustment |
+|-----------|-----------------|
+| Baseline (completed step) | 70 |
+| Tool call succeeded | +10 |
+| Tool call errored | -45 |
+| **Duplicate action detected** | **-35** |
+| `write_edit_tool` or `run_command_tool` succeeded | +10 |
+
+The final score is clamped to 0–100.
+
+#### 2. Self-Healing Nudge
+
+When the rolling health score (average of the last 5 steps) drops **below 40**, and at least
+**3 iterations** have passed since the last nudge, the orchestrator injects a self-check
+message into the conversation:
+
+> `[self-check] Your last several steps haven't been making much progress (rolling health score: X/100 — errors and/or repeated identical actions with no new information). Before continuing: re-read the current state of whatever you're working on rather than assuming, double-check your last assumption was actually correct, and consider a genuinely different approach instead of retrying something similar.`
+
+This nudge is purely heuristic — no extra LLM calls, no added cost or latency. It's a
+lightweight signal that helps the agent recognize when it's stuck in a loop.
+
+### Configuration Options
+
+Duplicate action detection and self-healing are controlled by the `selfHealing` option:
+
+```ts
+interface OrchestratorOptions {
+  /**
+   * When true (default), scores each tool step heuristically and, if the
+   * rolling average drops low, injects a one-time nudge into context asking
+   * the model to reconsider its approach instead of continuing down a stuck
+   * path. Purely heuristic — no extra LLM calls, no added cost/latency.
+   */
+  selfHealing?: boolean; // default: true
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `selfHealing` | `boolean` | `true` | Enable/disable health scoring and duplicate detection entirely |
+| `maxIterations` | `number` | `20` | Maximum ReAct iterations before forced stop (indirectly limits duplicate cycles) |
+
+When `selfHealing` is `false`, no scoring or nudging occurs — `scoreStep()` is never
+called, so the call history is not populated and duplicate actions are not tracked.
+
+### Best Practices
+
+- **Duplicate detection is automatic** — no configuration needed beyond the default settings.
+- **Legitimate re-runs are not penalized** — running the same test after an edit produces a
+  different observation and is correctly treated as progress.
+- **The health score is a rolling average** — a single bad step won't trigger a nudge; it
+  takes sustained low scores (below 40 over 5 steps) to activate.
+- **The nudge has a cooldown** — at least 3 iterations must pass between nudges to prevent
+  spamming the agent.
+
+---
+
+## Self-Healing Health Score
+
+The health score is a rolling 0–100 metric that tracks whether the agent is making progress.
+It's computed by `stepScorer.ts` and updated after every tool call.
+
+- **Rolling window:** Last 5 steps (configurable)
+- **Threshold:** Below 40 triggers a self-healing nudge
+- **Cost:** Zero — purely deterministic, no LLM calls
+- **Persistence:** Tracked per-run in `HealthState` and exposed via `getHealthScore()`
+
+---
+
+## Goal Validation
+
+Before accepting a completion, xcoder runs an independent goal validator that checks whether
+the agent's claimed completion is actually supported by the recorded observations.
+
+- **Enabled by default** (`validateGoal: true`)
+- **Max retries:** 2 (`maxValidatorRetries`)
+- **On rejection:** The rejection reason is fed back into the conversation for correction
+- **On exhaustion:** After max retries, the answer is accepted without verification
+
+---
 
 ## Configuration
 
-All configuration is via environment variables (`.env` — see `.env.example`,
-`.env.production.example`, `.env.staging.example` for the full set with comments):
+xcoder is configured via the `OrchestratorOptions` interface passed to the orchestrator or
+engine constructor. Key options:
 
-| Variable | Purpose |
-|---|---|
-| `DEEPSEEK_API_KEY` | Primary LLM provider (required for any task to actually run) |
-| `ANTHROPIC_API_KEY` | Optional fallback if DeepSeek is unreachable/unset |
-| `GITHUB_TOKEN` | Used by `github_tool` for HTTPS clone/fetch/pull/push auth |
-| `XCODER_API_KEY` | If set, all `/api/v1/*` endpoints require `Authorization: Bearer <key>` |
-| `XCODER_API_PORT` | API server port (default `3001`) |
-| `MAX_ITERATIONS` | ReAct loop iteration ceiling per round — code default is **20** (`orchestrator.ts`); note `.env.example`'s inline comment says 10, which is stale relative to the actual code default |
-| `DATABASE_TYPE` | `sqlite` (default, zero-config) or `postgres` |
-| `DATABASE_SQLITE_PATH` | Default `~/.xcoder/data/xcoder.db` |
-| `DATABASE_URL` / `DATABASE_HOST` etc. | Postgres connection, if `DATABASE_TYPE=postgres` |
-| `REMOTE_SSH_USER` / `REMOTE_SSH_PASSWORD` | Required for `--deploy --remote <ip>` |
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `maxIterations` | `number` | `20` | Max ReAct iterations per round |
+| `planMode` | `"auto" \| "always" \| "never"` | `"auto"` | When to enter plan mode |
+| `validateGoal` | `boolean` | `true` | Enable goal validation |
+| `selfHealing` | `boolean` | `true` | Enable health scoring and duplicate detection |
+| `leanToken` | `boolean` | `true` | Enable context compaction |
+| `singlePhase` | `boolean` | `false` | Disable phase planning |
+| `interactive` | `boolean` | `true` | Enable stdin prompts |
+| `auto` | `boolean` | `false` | Fully autonomous mode (no prompts) |
+| `isolatedWorkspace` | `boolean` | `false` | Run in isolated workspace copy |
 
-**CLI runs never touch the database** — they log only to `.log/*.log` (via `FileTelemetry`) and
-the markdown files under `tasks/`. Only the API server writes to the database (task history, phase
-reports, WBS) — see [blueprint.md § Persistence boundary](./blueprint.md#persistence-boundary) for
-why that split exists and how it's enforced in code.
+---
 
-## Running the API + UI
+## Development
 
 ```bash
-# API server
-xcoder --serve --port 3001
+# Install dependencies
+npm run xcoder:install
 
-# UI (separate terminal)
-cd ui
-npm install --ignore-scripts
-npm run dev      # dev server, proxies to the API
-npm run build    # production build → ui/dist/
+# Build
+npm run build
+
+# Run tests
+npm test
+
+# Run in development mode
+npm run dev -- --task "your task description"
+
+# Run as CLI
+npm start -- --task "your task description"
+
+# Start API server
+npm run xcoder:api
 ```
 
-## Testing
+### Project Structure
 
-```bash
-npm test          # vitest run
-npm run test:watch
-```
-
-## Docker
-
-```bash
-xcoder --deploy --docker              # local: docker compose up -d --build
-xcoder --deploy --docker --llm true   # same, but agent-mediated (diagnoses/fixes build failures)
-```
-
-A `docker-compose.yml` is expected at the project root for this to work — see
-[blueprint.md § Deployment topology](./blueprint.md#deployment-topology).
-
-## Known gaps
-
-These are tracked, not hidden — see `CHANGES.md` for the full history of what's been
-fixed/verified so far in this checkout:
-
-- `package.json`'s `install`/`setup`/`package:*` npm scripts reference `scripts/*.sh` files that
-  don't exist in this checkout. Use the manual commands in [Quick start](#quick-start) until
-  they're restored.
-- No top-level `docker-compose.yml` is included in this doc set — add one matching your actual
-  services before relying on `--deploy --docker`.
-
-## License
-
-Not yet specified — add a `LICENSE` file before distributing outside your organization.
+- `src/core/` — Core orchestration, engines, types, and protocols
+- `src/tools/` — Tool implementations and dispatcher
+- `src/llm/` — LLM client integrations
+- `src/cli/` — CLI entry point
+- `src/api/` — Express API server
+- `src/db/` — Database layer
+- `src/test/` — Test suite (Vitest)
+- `agent/` — Skill definitions and protocol files

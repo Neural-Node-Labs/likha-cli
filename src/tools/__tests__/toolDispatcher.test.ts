@@ -3,7 +3,10 @@ import { describe, it, expect } from "vitest";
 // Replicate the repair functions here for testing
 function safeParseJson(raw: string): Record<string, unknown> {
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
   } catch {
     // Fall through to repair path
   }
@@ -13,7 +16,7 @@ function safeParseJson(raw: string): Record<string, unknown> {
     return repaired;
   }
 
-  return JSON.parse(raw);
+  throw new Error(`Failed to parse or repair JSON object from input: ${raw}`);
 }
 
 function attemptJsonRepair(raw: string): Record<string, unknown> | null {
@@ -276,4 +279,3 @@ describe("safeParseJson", () => {
     expect(result.content).toBe("path\\to\\file");
   });
 });
-
