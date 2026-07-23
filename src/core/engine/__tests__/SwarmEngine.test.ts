@@ -487,4 +487,43 @@ describe("SwarmEngine", () => {
         persistArtifacts: false,
       });
 
-      (engine as any
+      const tasks = (engine as any).parseWbsTasks(MULTI_TASK_WBS);
+      expect(tasks.length).toBe(3);
+      expect(tasks[0]).toMatchObject({ id: "T1", description: "Task one", dependencies: [], status: "pending" });
+      expect(tasks[1]).toMatchObject({ id: "T2", description: "Task two", dependencies: ["T1"] });
+      expect(tasks[2]).toMatchObject({ id: "T3", description: "Task three", dependencies: ["T1"] });
+    });
+
+    it("returns an empty array when parsing an empty WBS plan", () => {
+      const engine = new SwarmEngine(llm, telemetry);
+      expect((engine as any).parseWbsTasks("")).toEqual([]);
+    });
+
+    it("returns an empty array when parsing a header-only WBS plan", () => {
+      const engine = new SwarmEngine(llm, telemetry);
+      const tasks = (engine as any).parseWbsTasks("| ID | Description | Dependencies | Instructions |");
+      expect(tasks).toEqual([]);
+    });
+
+    it("detects no circular dependencies in a valid DAG", () => {
+      const engine = new SwarmEngine(llm, telemetry);
+      (engine as any).wbsTasks = (engine as any).parseWbsTasks(MULTI_TASK_WBS);
+      expect((engine as any).validateWbsDependencies()).toEqual([]);
+    });
+
+    it("detects circular dependencies", () => {
+      const engine = new SwarmEngine(llm, telemetry);
+      (engine as any).wbsTasks = (engine as any).parseWbsTasks(CIRCULAR_DEP_WBS);
+      const errors = (engine as any).validateWbsDependencies();
+      expect(errors.length).toBeGreaterThan(0);
+    });
+
+    it("detects self-referential dependencies", () => {
+      const engine = new SwarmEngine(llm, telemetry);
+      (engine as any).wbsTasks = (engine as any).parseWbsTasks(SELF_DEP_WBS);
+      const errors = (engine as any).validateWbsDependencies();
+      expect(errors.length).toBeGreaterThan(0);
+    });
+  });
+});
+

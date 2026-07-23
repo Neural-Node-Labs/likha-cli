@@ -426,4 +426,19 @@ describe("LangGraphEngine", () => {
       });
       const completionResponse = makeResponse({
         content: "Done checking.",
-        toolC
+        toolCalls: [],
+      });
+      const mockLlm = createMockLlm([multiToolResponse, completionResponse]);
+      const engine = new LangGraphEngine(mockLlm, telemetry, { maxIterations: 5, validateGoal: false });
+
+      const result = await engine.run("Check two files");
+      expect(result).toBe("Done checking.");
+      expect(engine.getLastOutcome()).toBe("completed");
+
+      // Both tool calls should have produced a corresponding tool message
+      const messages = engine.getLastMessages();
+      const toolMessages = messages.filter((m) => m.role === "tool");
+      expect(toolMessages.length).toBe(2);
+    });
+  });
+});
