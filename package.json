@@ -14,7 +14,7 @@
     "xcoder:build": "npm run build && npm run build --prefix ui",
     "xcoder:ui": "concurrently \"node dist/cli/index.js --serve --port 3001\" \"npm run dev --prefix ui\"",
     "xcoder:api": "node dist/cli/index.js --serve --port 3001",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node -e \"fs.cpSync('agent', 'dist/config/agent', { recursive: true })\"",
     "start": "node dist/cli/index.js",
     "dev": "ts-node --esm src/cli/index.ts",
     "test": "vitest run",

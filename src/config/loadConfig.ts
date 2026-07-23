@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import yaml from "js-yaml";
 import "dotenv/config";
+import os from "node:os";
 
 export interface LlmConfig {
   provider: string;
@@ -17,19 +18,64 @@ export interface LlmConfig {
   fallback?: { provider: string; model: string; api_key_env: string; base_url?: string; endpoint?: string };
 }
 
-const DEFAULT_CONFIG_PATH = path.join(process.cwd(), "agent", "config", "llm.yaml");
+const RELATIVE_CONFIG_PATH = path.join("agent", "config", "llm.yaml");
+const RELATIVE_HOME_PATH = path.join("agent");
 
-function resolveConfigPath(): string {
-  if (fs.existsSync(DEFAULT_CONFIG_PATH)) return DEFAULT_CONFIG_PATH;
-  const home = process.env.XCODER_HOME;
-  if (home) {
-    const homePath = path.join(home, "agent", "config", "llm.yaml");
-    if (fs.existsSync(homePath)) return homePath;
+// function resolveConfigPath(): string {
+//   if (fs.existsSync(DEFAULT_CONFIG_PATH)) return DEFAULT_CONFIG_PATH;
+//   const home = process.env.XCODER_HOME;
+//   if (home) {
+//     const homePath = path.join(home, "agent", "config", "llm.yaml");
+//     if (fs.existsSync(homePath)) return homePath;
+//   }
+//   return DEFAULT_CONFIG_PATH;
+// }
+
+
+export function resolveConfigPath(): string {
+  const candidatePaths: string[] = [];
+
+  // 4. Check App Directory (where this source file/code is running from)
+  // For ES Modules use import.meta.dirname; for CommonJS use __dirname
+  const appDir = typeof import.meta !== "undefined" && import.meta.dirname
+    ? import.meta.dirname
+    : __dirname;
+
+//   console.log(`process.cwd() : ${process.cwd()}`);
+//   console.log(`os.homedir() : ${os.homedir()}`);
+//   console.log(`process.env.XCODER_HOME : ${process.env.XCODER_HOME}`);
+//   console.log(`appDir : ${appDir}`);
+
+  candidatePaths.push(path.join(appDir,RELATIVE_HOME_PATH));
+
+  // 1. Check explicit XCODER_HOME env variable first (if provided)
+  if (process.env.XCODER_HOME) {
+    candidatePaths.push(path.join(process.env.XCODER_HOME,RELATIVE_HOME_PATH));
   }
-  return DEFAULT_CONFIG_PATH;
+
+  // 2. Check Current Working Directory (where the user ran the terminal command)
+  candidatePaths.push(path.join(process.cwd(),RELATIVE_HOME_PATH));
+
+  // 3. Check User's Home Directory (~/agent/config/llm.yaml or C:\Users\Username\...)
+  candidatePaths.push(path.join(os.homedir(),RELATIVE_HOME_PATH));
+
+
+
+  // Return the first path that actually exists on disk
+  for (const configPath of candidatePaths) {
+    if (fs.existsSync(configPath)) {
+        console.log(`configPath : ${configPath}`);
+      return configPath;
+    }
+  }
+
+  // Default fallback if no file is found anywhere (will trigger loadLlmConfig defaults)
+  return candidatePaths[0] ?? path.join(process.cwd(), RELATIVE_CONFIG_PATH);
 }
 
-export function loadLlmConfig(configPath: string = resolveConfigPath()): LlmConfig {
+
+
+export function loadLlmConfig(configPath: string = path.join(resolveConfigPath(), RELATIVE_CONFIG_PATH)): LlmConfig {
   if (!fs.existsSync(configPath)) {
     // Sane default: DeepSeek non-thinking mode, current model IDs, temperature 0.0 per
     // DeepSeek's own published guidance for code/math tasks (this is a coding agent).
@@ -44,6 +90,7 @@ export function loadLlmConfig(configPath: string = resolveConfigPath()): LlmConf
       thinking: false,
     };
   }
+  //console.log(`Configuration Path: ${configPath}`)
   const raw = fs.readFileSync(configPath, "utf-8");
   return yaml.load(raw) as LlmConfig;
 }

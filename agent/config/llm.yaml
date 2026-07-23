@@ -15,7 +15,7 @@
 provider: deepseek
 base_url: https://api.deepseek.com/v1
 endpoint: /chat/completions
-model: deepseek-v4-flash    # non-thinking mode; use deepseek-v4-pro for RCA/Architect/Pentester where deep reasoning matters
+model: deepseek-v4-pro    # non-thinking mode; use deepseek-v4-pro for RCA/Architect/Pentester where deep reasoning matters
 api_key_env: DEEPSEEK_API_KEY
 max_tokens: 4096
 temperature: 0.0            # DeepSeek's own published guidance: 0.0 for code/math tasks (this is a coding agent)

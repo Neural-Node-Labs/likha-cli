@@ -1,28 +1,30 @@
 import fs from "node:fs";
 import path from "node:path";
+import { resolveConfigPath } from "../config/loadConfig.js";
 
-const PROTOCOL_PATH = path.join("agent", "xcoder.md");
+const PROTOCOL_PATH = path.join("xcoder.md");
 const LESSONS_PATH = path.join("tasks", "lessons.md");
 const TODO_PATH = path.join("tasks", "todo.md");
 
 /** Reads agent/xcoder.md if present; this is the engineering protocol from the workflow doc. */
-export function loadProtocol(cwd: string = process.cwd()): string | undefined {
+function loadProtocol(cwd: string = resolveConfigPath()): string | undefined {
   const p = path.join(cwd, PROTOCOL_PATH);
-  if (fs.existsSync(p)) return fs.readFileSync(p, "utf-8").trim();
-
-  // Fall back to the protocol baked into the xcoder install (Docker image) if the workspace
-  // doesn't ship its own -- same reasoning as SkillRegistry's XCODER_HOME fallback.
-  const home = process.env.XCODER_HOME;
-  if (home) {
-    const hp = path.join(home, PROTOCOL_PATH);
-    if (fs.existsSync(hp)) return fs.readFileSync(hp, "utf-8").trim();
+  if (fs.existsSync(p)) {
+      console.log(`Protocol loaded ...`)
+  } else {
+      console.log(`Protocol not found! ...${p}`)
   }
-  return undefined;
+  return fs.existsSync(p) ? fs.readFileSync(p, "utf-8").trim(): undefined;
 }
 
 /** Reads tasks/lessons.md if present — patterns captured from prior user corrections. */
 export function loadLessons(cwd: string = process.cwd()): string | undefined {
   const p = path.join(cwd, LESSONS_PATH);
+  if (fs.existsSync(p)) {
+      console.log(`Lessons loaded ...`)
+  } else {
+      console.log(`Lessons not found! ...${p}`)
+  }
   return fs.existsSync(p) ? fs.readFileSync(p, "utf-8").trim() : undefined;
 }
 
@@ -50,7 +52,7 @@ export function appendTodoReview(cwd: string, review: string): void {
  * DeepSeek's docs recommend for segmenting a large instruction payload within one message.
  */
 export function buildProtocolPrompt(cwd: string = process.cwd()): string {
-  const protocol = loadProtocol(cwd);
+  const protocol = loadProtocol(resolveConfigPath());
   const lessons = loadLessons(cwd);
 
   let out = "";

@@ -20,6 +20,7 @@ import { deployWorkspaceViaSsh } from "../tools/dockerDeploySshTool.js";
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import os from "node:os";
 
 const program = new Command();
 program.name("xcoder").description("xcoder — ReAct CLI agent with hot-pluggable role skills").version("0.1.0");
@@ -52,6 +53,9 @@ program
   .option("--remote-path <path>", "remote directory path for deployment (default: /opt/xcoder)")
   .option("--engine <name>", `orchestration engine to use (default: "${DEFAULT_ENGINE}"). Registered engines: ${listEngines().join(", ")}. See src/core/engine/EngineRegistry.ts to register another implementation.`, DEFAULT_ENGINE)
   .action(async (taskArg, opts, cmd) => {
+
+
+
     const cwd = process.cwd();
     const telemetry = new FileTelemetry(cwd);
     const llmConfig = loadLlmConfig();
