@@ -5,224 +5,61 @@
 - **Version:** 0.2.0
 - **License:** MIT
 - **Engine:** TypeScript (Node.js), ReAct loop with multiple engine implementations
+- **LLM:** DeepSeek (default), with mock client for testing
 
 ---
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Quick Start](#quick-start)
+- [CLI Usage](#cli-usage)
 - [Architecture](#architecture)
 - [Engines](#engines)
-- [Duplicate Action Detection](#duplicate-action-detection)
-- [Self-Healing Health Score](#self-healing-health-score)
+- [Skill System](#skill-system)
+- [Plan Mode](#plan-mode)
+- [Phase Planning](#phase-planning)
+- [Self-Healing & Duplicate Detection](#self-healing--duplicate-detection)
 - [Goal Validation](#goal-validation)
+- [Context Compaction](#context-compaction)
+- [API Server](#api-server)
+- [UI](#ui)
+- [Deploy Mode](#deploy-mode)
+- [Audit & Diagnostics](#audit--diagnostics)
 - [Configuration](#configuration)
+- [Database Layer](#database-layer)
 - [Development](#development)
+- [Project Structure](#project-structure)
 
 ---
 
 ## Overview
 
-xcoder is a CLI agent that follows the **ReAct** (Reasoning + Acting) pattern: it iteratively
-thinks about a task, calls tools to gather information or make changes, observes the results,
-and repeats until the task is complete. It supports multiple orchestration engines, hot-pluggable
-skill directives, and a built-in self-healing mechanism that detects when the agent is stuck.
+xcoder is a CLI agent that follows the **ReAct** (Reasoning + Acting) pattern: it iteratively thinks about a task, calls tools to gather information or make changes, observes the results, and repeats until the task is complete. It supports multiple orchestration engines, hot-pluggable skill directives, phase planning, an HTTP API server, a React UI, and a built-in self-healing mechanism that detects when the agent is stuck.
 
 ### Key Features
 
 - **ReAct loop** with Search → Action → Validation phases
 - **Multiple engine implementations** — standard ReAct, LeanEngine, LangGraph, Swarm
+- **Hot-pluggable skill system** — 30+ specialized skills (programmer, architect, devops, tester, etc.) loaded from `agent/skills/`
+- **Plan Mode** — generates a task plan before execution, with user approval
+- **Phase Planning** — divides complex tasks into sequential phases with isolated context
 - **Duplicate action detection** — prevents wasteful repeated tool calls
+- **Duplicate iteration reason detection** — three-pass matching (exact, case-insensitive, fuzzy) for repeated reasoning
 - **Self-healing health scoring** — detects stalled progress and nudges the agent
 - **Goal validation** — independent verification before accepting completion
-- **Phase planning** — divides complex tasks into isolated phases
+- **Context compaction** — collapses stale file reads to save tokens (lean-token mode)
 - **Subagent delegation** — offloads work to isolated sub-agents
-- **Context compaction** — collapses stale file reads to save tokens
-- **Persistent task history** — SQLite/Postgres-backed
+- **Persistent task history** — file-based (`.agent/task-history.jsonl` + `.agent/task_history.md`) and database-backed (SQLite/Postgres)
+- **HTTP API server** — Express-based REST API for remote task execution
+- **React UI** — Vite + TypeScript frontend for managing tasks, plans, and telemetry
+- **Deploy mode** — local Docker Compose or remote SSH deployment
+- **ReAct audit** — automated bug-fixing scenario battery
+- **Live diagnostics** — 7-point ReAct diagnostic suite
 
 ---
 
-## Architecture
-
-```
-src/
-├── cli/              # CLI entry point (Commander)
-├── api/              # Express API server
-├── core/             # Core orchestration logic
-│   ├── engine/       # Engine implementations
-│   ├── io/           # I/O abstractions (AutoIO, AgentIO)
-│   └── ...
-├── tools/            # Tool implementations (20+ tools)
-├── llm/              # LLM client (DeepSeek, mock)
-├── indexing/         # Workspace indexing
-├── config/           # Configuration loading
-├── db/               # Database layer (SQLite, Postgres)
-├── remote/           # SSH/SCP remote operations
-├── telemetry/        # Logging and telemetry
-└── test/             # Test suite
-```
-
----
-
-## Engines
-
-xcoder provides four engine implementations, all interchangeable via the `IReactEngine` interface:
-
-| Engine | Description |
-|--------|-------------|
-| **ReActOrchestrator** | Full-featured default engine with plan mode, phase planning, subagent delegation, and goal validation |
-| **LeanEngine** | Focused, self-contained ReAct loop — the core loop without plan mode or subagents |
-| **LangGraphEngine** | ReAct loop built on `@langchain/langgraph`'s StateGraph with explicit two-node state machine |
-| **SwarmEngine** | Parallel swarm orchestration with WBS decomposition and concurrent agent dispatch |
-
----
-
-## Duplicate Action Detection
-
-xcoder includes a deterministic duplicate-action detection system that prevents the agent from
-wasting iterations on repeated tool calls that produce no new information. This is a core part
-of the self-healing mechanism and runs on every tool step at zero additional LLM cost.
-
-### What Constitutes a Duplicate
-
-A tool call is flagged as a **duplicate action** when **all three** of these conditions are met:
-
-1. **Same tool** — the exact same tool name (e.g., `run_command_tool`, `read_tool`)
-2. **Same arguments** — the exact same arguments (compared via stable JSON serialization)
-3. **Same observation** — the tool produced the **identical** result every time it was called
-
-This deliberately does **not** flag legitimate re-runs. For example, running a test command
-after editing a file is expected ReAct behavior — the observation will be different because
-the underlying state changed. Only genuinely wasteful repeats (same call, same result, no new
-information) are flagged.
-
-### How Detection Works
-
-Detection is implemented in `src/core/duplicateActionDetector.ts`:
-
-1. **Grouping** — All tool call records in the current run are grouped by a composite key of
-   `tool::stableStringify(args)`.
-2. **Filtering** — Groups with fewer than 2 calls are ignored (no repetition).
-3. **Observation comparison** — For groups with 2+ calls, the observations are compared using
-   stable JSON serialization. If every observation in the group is identical, the group is
-   flagged as a violation.
-4. **Reporting** — Each violation records the tool name, arguments, occurrence count, and a
-   human-readable reason.
-
-The `stableStringify` function ensures deterministic key ordering for object arguments,
-so `{a:1, b:2}` and `{b:2, a:1}` produce the same key and are correctly recognized as
-the same call.
-
-### What Happens When a Duplicate Is Found
-
-When a duplicate action is detected, two things happen:
-
-#### 1. Health Score Penalty
-
-The `stepScorer.ts` module (`scoreStep` function) applies a **-35 point penalty** to the
-step's health score when it's identified as a duplicate. The scoring logic:
-
-| Condition | Score Adjustment |
-|-----------|-----------------|
-| Baseline (completed step) | 70 |
-| Tool call succeeded | +10 |
-| Tool call errored | -45 |
-| **Duplicate action detected** | **-35** |
-| `write_edit_tool` or `run_command_tool` succeeded | +10 |
-
-The final score is clamped to 0–100.
-
-#### 2. Self-Healing Nudge
-
-When the rolling health score (average of the last 5 steps) drops **below 40**, and at least
-**3 iterations** have passed since the last nudge, the orchestrator injects a self-check
-message into the conversation:
-
-> `[self-check] Your last several steps haven't been making much progress (rolling health score: X/100 — errors and/or repeated identical actions with no new information). Before continuing: re-read the current state of whatever you're working on rather than assuming, double-check your last assumption was actually correct, and consider a genuinely different approach instead of retrying something similar.`
-
-This nudge is purely heuristic — no extra LLM calls, no added cost or latency. It's a
-lightweight signal that helps the agent recognize when it's stuck in a loop.
-
-### Configuration Options
-
-Duplicate action detection and self-healing are controlled by the `selfHealing` option:
-
-```ts
-interface OrchestratorOptions {
-  /**
-   * When true (default), scores each tool step heuristically and, if the
-   * rolling average drops low, injects a one-time nudge into context asking
-   * the model to reconsider its approach instead of continuing down a stuck
-   * path. Purely heuristic — no extra LLM calls, no added cost/latency.
-   */
-  selfHealing?: boolean; // default: true
-}
-```
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `selfHealing` | `boolean` | `true` | Enable/disable health scoring and duplicate detection entirely |
-| `maxIterations` | `number` | `20` | Maximum ReAct iterations before forced stop (indirectly limits duplicate cycles) |
-
-When `selfHealing` is `false`, no scoring or nudging occurs — `scoreStep()` is never
-called, so the call history is not populated and duplicate actions are not tracked.
-
-### Best Practices
-
-- **Duplicate detection is automatic** — no configuration needed beyond the default settings.
-- **Legitimate re-runs are not penalized** — running the same test after an edit produces a
-  different observation and is correctly treated as progress.
-- **The health score is a rolling average** — a single bad step won't trigger a nudge; it
-  takes sustained low scores (below 40 over 5 steps) to activate.
-- **The nudge has a cooldown** — at least 3 iterations must pass between nudges to prevent
-  spamming the agent.
-
----
-
-## Self-Healing Health Score
-
-The health score is a rolling 0–100 metric that tracks whether the agent is making progress.
-It's computed by `stepScorer.ts` and updated after every tool call.
-
-- **Rolling window:** Last 5 steps (configurable)
-- **Threshold:** Below 40 triggers a self-healing nudge
-- **Cost:** Zero — purely deterministic, no LLM calls
-- **Persistence:** Tracked per-run in `HealthState` and exposed via `getHealthScore()`
-
----
-
-## Goal Validation
-
-Before accepting a completion, xcoder runs an independent goal validator that checks whether
-the agent's claimed completion is actually supported by the recorded observations.
-
-- **Enabled by default** (`validateGoal: true`)
-- **Max retries:** 2 (`maxValidatorRetries`)
-- **On rejection:** The rejection reason is fed back into the conversation for correction
-- **On exhaustion:** After max retries, the answer is accepted without verification
-
----
-
-## Configuration
-
-xcoder is configured via the `OrchestratorOptions` interface passed to the orchestrator or
-engine constructor. Key options:
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `maxIterations` | `number` | `20` | Max ReAct iterations per round |
-| `planMode` | `"auto" \| "always" \| "never"` | `"auto"` | When to enter plan mode |
-| `validateGoal` | `boolean` | `true` | Enable goal validation |
-| `selfHealing` | `boolean` | `true` | Enable health scoring and duplicate detection |
-| `leanToken` | `boolean` | `true` | Enable context compaction |
-| `singlePhase` | `boolean` | `false` | Disable phase planning |
-| `interactive` | `boolean` | `true` | Enable stdin prompts |
-| `auto` | `boolean` | `false` | Fully autonomous mode (no prompts) |
-| `isolatedWorkspace` | `boolean` | `false` | Run in isolated workspace copy |
-
----
-
-## Development
+## Quick Start
 
 ```bash
 # Install dependencies
@@ -231,26 +68,768 @@ npm run xcoder:install
 # Build
 npm run build
 
-# Run tests
-npm test
+# Run a task
+npm start -- --task "List all TypeScript files in src/"
 
-# Run in development mode
-npm run dev -- --task "your task description"
-
-# Run as CLI
-npm start -- --task "your task description"
-
-# Start API server
-npm run xcoder:api
+# Or use the dev mode (no build needed)
+npm run dev -- --task "List all TypeScript files in src/"
 ```
 
-### Project Structure
+### Prerequisites
 
-- `src/core/` — Core orchestration, engines, types, and protocols
-- `src/tools/` — Tool implementations and dispatcher
-- `src/llm/` — LLM client integrations
-- `src/cli/` — CLI entry point
-- `src/api/` — Express API server
-- `src/db/` — Database layer
-- `src/test/` — Test suite (Vitest)
-- `agent/` — Skill definitions and protocol files
+- **Node.js** >= 18
+- **DeepSeek API key** — set `DEEPSEEK_API_KEY` in your environment or `.env` file
+- **npm** (for UI dependencies)
+
+### Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+DEEPSEEK_API_KEY=sk-your-key-here
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
+# Optional:
+# MAX_ITERATIONS=30
+# XCODER_API_PORT=3001
+# XCODER_API_HOST=0.0.0.0
+# DATABASE_URL=postgresql://user:pass@localhost:5432/xcoder
+# REMOTE_SSH_USER=deploy
+# REMOTE_SSH_PASSWORD=your-password
+# XCODER_SSH_TARGETS=host1:22,host2:22
+# XCODER_SSH_USER=fleet-user
+# XCODER_SSH_PASSWORD=fleet-password
+```
+
+---
+
+## CLI Usage
+
+```bash
+xcoder [task] [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `[task]` | Task description — equivalent to `--task <description>` |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--task <description>` | Execute a single task, asking for clarification if needed |
+| `--chat` | Enter interactive chat mode (workspace = current folder) |
+| `--index` | Index the current workspace into `.agent/index/` |
+| `--skills` | List all loaded skills and their trigger keywords |
+| `--lesson <text>` | Record a lesson to `tasks/lessons.md` (see xcoder.md Self-Improvement Loop) |
+| `--plan` | Force Plan Mode on, regardless of task complexity heuristic |
+| `--no-plan` | Force Plan Mode off, regardless of task complexity heuristic |
+| `--full-context-token` | Keep every historical copy of read_tool file snapshots in context instead of collapsing stale ones (see `src/core/contextCompaction.ts`); default: off, lean-token compaction is on |
+| `--single-phase` | Disable phase-based planning and run as a single ReAct loop; default: phase-planning is ON |
+| `--auto` | Fully autonomous mode — automatically answers 'yes' to ALL interactive prompts (plan approval, phase plan approval, iteration limit continuation, subagent continuation). The LLM drives end-to-end without any human intervention. Use this for CI/CD, automated testing, or any scenario where zero human input is desired. |
+| `--isolated-workspace` | Run tool operations against an isolated `./workspace-agent` copy instead of the live project files (see `src/core/workspaceManager.ts`); default: off |
+| `--engine <name>` | Orchestration engine to use (default: `react`). Registered engines: `react`, `lean`, `langgraph`, `swarm`. See `src/core/engine/EngineRegistry.ts` to register another implementation. |
+| `--serve` | Start the xcoder HTTP API server |
+| `--ui` | Start both the xcoder HTTP API server and the UI frontend |
+| `--port <number>` | Port for the API server (default: 3001) |
+| `--host <address>` | Host for the API server (default: 0.0.0.0) |
+| `--deploy` | Trigger deploy mode (Docker Compose) |
+| `--docker` | Use Docker Compose for deployment |
+| `--llm <boolean>` | Send deploy task to the LLM as a devops task |
+| `--remote <ip>` | Remote host IP to deploy to |
+| `--remote-path <path>` | Remote directory path for deployment (default: `/opt/xcoder`) |
+| `--audit-react` | Run the built-in bug-fixing scenario battery through the real orchestrator and report on how it performed |
+| `--audit-out <path>` | Where to write the audit report markdown (default: `reports/react-audit-<timestamp>.md`) |
+| `--diagnose-live` | Run the 7-point ReAct diagnostic suite against the real configured LLM: iteration stopping, restart-approval, duplicate-action avoidance, tool/skill usage, ground-up deployable app, bug fixing, and full SDLC |
+| `--diagnose-out <path>` | Where to write the diagnostics report |
+
+### Examples
+
+```bash
+# Run a single task
+xcoder "Refactor the authentication module to use JWT tokens"
+
+# Interactive chat mode
+xcoder --chat
+
+# List available skills
+xcoder --skills
+
+# Index the workspace
+xcoder --index
+
+# Record a lesson
+xcoder --lesson "Always validate file paths before writing"
+
+# Use the LangGraph engine
+xcoder --engine langgraph --task "Analyze the test coverage"
+
+# Start the API server
+xcoder --serve --port 3001
+
+# Start the API + UI
+xcoder --ui
+
+# Deploy via Docker Compose
+xcoder --deploy --docker
+
+# Deploy to a remote host
+xcoder --deploy --docker --remote 192.168.1.100
+
+# Run in fully autonomous mode
+xcoder --auto --task "Set up CI/CD pipeline"
+
+# Run the ReAct audit
+xcoder --audit-react
+
+# Run live diagnostics
+xcoder --diagnose-live
+```
+
+---
+
+## Architecture
+
+```
+xcoder/
+├── agent/                  # Skill definitions and protocol files
+│   ├── xcoder.md           # Engineering protocol (system prompt)
+│   └── skills/             # 30+ skill definitions (SKILL.md per skill)
+├── src/
+│   ├── cli/                # CLI entry point (Commander)
+│   │   ├── index.ts        # CLI argument parsing and dispatch
+│   │   └── CliIO.ts        # Terminal I/O (spinner, prompts, colors)
+│   ├── api/                # Express API server
+│   │   ├── server.ts       # Server startup
+│   │   ├── routes.ts       # All API endpoints
+│   │   ├── auth.ts         # Token-based authentication
+│   │   ├── types.ts        # API request/response types
+│   │   ├── projectRoutes.ts
+│   │   ├── planRoutes.ts
+│   │   ├── projectStore.ts
+│   │   ├── planStore.ts
+│   │   ├── wbsStore.ts
+│   │   ├── phaseReportStore.ts
+│   │   ├── taskHistoryStore.ts
+│   │   └── llmKeyStore.ts
+│   ├── core/               # Core orchestration logic
+│   │   ├── engine/         # Engine implementations
+│   │   │   ├── IReactEngine.ts       # Engine interface + V2 lifecycle
+│   │   │   ├── EngineRegistry.ts     # Factory pattern for engine creation
+│   │   │   ├── LeanEngine.ts         # Focused ReAct loop
+│   │   │   ├── LangGraphEngine.ts    # LangGraph StateGraph-based loop
+│   │   │   └── SwarmEngine.ts        # Parallel swarm orchestration
+│   │   ├── io/             # I/O abstractions
+│   │   │   ├── AgentIO.ts  # Abstract I/O interface
+│   │   │   └── AutoIO.ts   # Headless-safe I/O (no stdin)
+│   │   ├── orchestrator.ts # Full-featured ReAct orchestrator
+│   │   ├── types.ts        # Core types (LlmMessage, ReActStep, etc.)
+│   │   ├── protocol.ts     # Protocol prompt builder
+│   │   ├── skillRegistry.ts # Skill loading and routing
+│   │   ├── stepScorer.ts   # Health scoring per step
+│   │   ├── duplicateActionDetector.ts # Duplicate tool call detection
+│   │   ├── iterationReasonDedup.ts    # Duplicate reasoning detection
+│   │   ├── contextCompaction.ts       # Stale file read compaction
+│   │   ├── goalValidator.ts           # Independent completion validation
+│   │   ├── workspaceManager.ts        # Isolated workspace management
+│   │   ├── taskHistory.ts             # File-based task history
+│   │   ├── reactAuditor.ts            # Bug-fixing scenario battery
+│   │   └── liveDiagnostics.ts         # 7-point diagnostic suite
+│   ├── tools/              # Tool implementations (20+ tools)
+│   │   ├── toolSchemas.ts  # Tool definitions for LLM function calling
+│   │   ├── toolDispatcher.ts # Tool call dispatch
+│   │   └── *.ts            # Individual tool implementations
+│   ├── llm/                # LLM client integrations
+│   │   ├── deepseekClient.ts # DeepSeek API client
+│   │   └── mockClient.ts   # Mock client for testing
+│   ├── config/             # Configuration loading
+│   │   └── loadConfig.ts   # LLM config from env/file
+│   ├── db/                 # Database layer
+│   │   ├── sqliteClient.ts # SQLite client
+│   │   ├── postgresClient.ts # PostgreSQL client
+│   │   ├── migrations.ts   # Schema migrations
+│   │   └── connection.ts   # Connection management
+│   ├── indexing/           # Workspace indexing
+│   │   ├── indexer.ts      # File indexer
+│   │   └── workspaceInfo.ts # Workspace snapshot
+│   ├── remote/             # SSH/SCP remote operations
+│   │   ├── sshConnection.ts
+│   │   └── scpUpload.ts
+│   └── telemetry/          # Logging and telemetry
+│       ├── logger.ts       # File-based telemetry
+│       └── postgresTelemetry.ts # DB-backed telemetry
+├── ui/                     # React frontend (Vite + TypeScript)
+│   ├── src/
+│   │   ├── pages/          # Page components
+│   │   ├── components/     # Shared UI components
+│   │   └── App.tsx         # Root app with routing
+│   └── package.json
+├── tasks/                  # Generated task artifacts
+│   ├── todo.md             # Current plan
+│   ├── lessons.md          # Captured lessons
+│   └── *.md                # Phase reports and WBS files
+└── .agent/                 # Agent metadata
+    ├── index/              # Workspace index
+    └── task-history.*      # Task history files
+```
+
+---
+
+## Engines
+
+xcoder provides four engine implementations, all interchangeable via the `IReactEngine` interface. Select one with the `--engine` flag or via `EngineRegistry.createEngine()`.
+
+| Engine | Flag | Description |
+|--------|------|-------------|
+| **ReActOrchestrator** | `react` (default) | Full-featured engine with plan mode, phase planning, subagent delegation, goal validation, and self-healing |
+| **LeanEngine** | `lean` | Focused, self-contained ReAct loop — the core loop without plan mode or subagents. Supports V2 lifecycle (cancellation, progress observers, state tracking) |
+| **LangGraphEngine** | `langgraph` | ReAct loop built on `@langchain/langgraph`'s StateGraph with explicit two-node state machine (agent ↔ tools). Supports V2 lifecycle |
+| **SwarmEngine** | `swarm` | Parallel swarm orchestration with WBS decomposition and concurrent agent dispatch. Supports V2 lifecycle |
+
+### Engine Registry
+
+Engines are registered via `EngineRegistry.ts` using a factory pattern:
+
+```typescript
+import { createEngine, listEngines } from "./core/engine/EngineRegistry.js";
+
+const engine = createEngine("lean", { llm, telemetry, io, options });
+console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
+```
+
+### IReactEngineV2 Lifecycle
+
+The V2 interface adds lifecycle management to engines:
+
+```typescript
+interface IReactEngineV2 extends IReactEngine {
+  cancel(reason?: string): void;
+  onProgress(observer: ProgressObserver): () => void;
+  getState(): EngineState; // "idle" | "planning" | "running" | "validating" | "cancelled" | "completed" | "error"
+  getLastMessages(): LlmMessage[];
+  getWorkspacePath(): string;
+  getIterationCount(): number;
+}
+```
+
+---
+
+## Skill System
+
+xcoder has a hot-pluggable skill system. Skills are defined as markdown files with YAML frontmatter in `agent/skills/<name>/SKILL.md`. Each skill has:
+
+- **Trigger keywords** — matched against the task description to auto-select relevant skills
+- **Role** — the persona the LLM should adopt (e.g., "Software Engineer", "DevOps Engineer")
+- **Process/Strategies/Instructions** — injected into the system prompt when the skill is selected
+- **`composes_with`** — allows multi-skill composition (e.g., programmer + tester)
+
+### Available Skills (30+)
+
+analyst, architect, aws, azure, conversation, devops, docker, docker-expert, filesystem-management, git-vcs, kafka, kubernetes, kubernetes-expert, openshift, pentester, performance-tester, playwright-ui-tester, programmer, qa-engineer, rca, redhat, rosa, scrum-framework, scrum-master-agent, secops, skill-authoring, software-architect, software-engineer, task-planning, tester, ubuntu, ui-ux-design, workspace-context
+
+### How Skills Are Loaded
+
+1. The `SkillRegistry` scans `agent/skills/` for `SKILL.md` files
+2. Each file's YAML frontmatter is parsed for name, role, triggers, and `composes_with`
+3. When a task is submitted, the registry matches trigger keywords against the task description
+4. Matched skills (and their `composes_with` companions) are injected into the LLM's system prompt
+
+```bash
+# List all skills and their triggers
+xcoder --skills
+```
+
+---
+
+## Plan Mode
+
+Plan Mode generates a task plan before execution, following the engineering protocol's directive: *"Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)."*
+
+### How It Works
+
+1. **Trigger** — Plan mode activates when:
+   - `--plan` flag is set (force on)
+   - `planMode: "always"` in options
+   - `planMode: "auto"` (default) and 2+ skills are matched (indicating cross-cutting work)
+2. **Generation** — The LLM produces a markdown checklist (3-8 steps) without calling any tools
+3. **Approval** — The plan is written to `tasks/todo.md` and shown to the user for approval
+4. **Execution** — After approval, the ReAct loop executes the plan
+5. **Review** — After completion, a review section is appended to `tasks/todo.md`
+
+### Two-Phase API Flow
+
+The API supports a two-phase flow for UI integration:
+
+1. `POST /api/v1/chat/plan` — Generate a plan, returns a `sessionId`
+2. `POST /api/v1/chat/execute` — Execute the approved plan by `sessionId`
+
+---
+
+## Phase Planning
+
+Phase Planning divides complex tasks into sequential phases, each running as a sub-orchestrator with isolated ReAct memory. This reduces per-phase token footprint at the cost of losing cross-phase context continuity.
+
+### How It Works
+
+1. **Decomposition** — The LLM divides the task into 2-5 sequential phases, each with its own goal
+2. **Approval** — The phase plan is shown to the user for approval
+3. **Execution** — Each phase runs sequentially as a sub-orchestrator with isolated ReAct memory
+4. **Summarization** — After each phase, the LLM summarizes what was accomplished for the next phase
+5. **Reporting** — Per-phase reports are saved to `tasks/[task-name]-phase-[N].md`; a WBS file is written to `tasks/[task-name]-wbs.md`
+
+### Phase Artifacts
+
+- `tasks/[task-name]-wbs.md` — Work Breakdown Structure, updated as phases complete
+- `tasks/[task-name]-phase-[N].md` — Per-phase reports with results and stats
+- Color-coded CLI output showing per-phase token usage and iteration counts
+
+### Disabling Phase Planning
+
+```bash
+# Run as a single ReAct loop (no phase planning)
+xcoder --single-phase --task "Complex task"
+```
+
+---
+
+## Self-Healing & Duplicate Detection
+
+xcoder has a multi-layered self-healing system that detects when the agent is stuck and nudges it back on track.
+
+### Health Scoring
+
+Two parallel health score systems track agent progress:
+
+1. **Step-level health** (`stepScorer.ts`) — A heuristic 0-100 score per tool step, based on:
+   - Did the tool call error? (-45 penalty)
+   - Is this a duplicate action? (-35 penalty)
+   - Is the iteration reason a duplicate? (exact: -25, case-insensitive: -20, fuzzy: -15)
+   - Did a write/edit/run_command succeed? (+10 reward)
+   - Rolling average over the last 5 steps
+
+2. **Memory health score** (`types.ts`) — A 0.0-1.0 score with history, trend, and `ScoreEntry` array:
+   - LLM self-assessment (parses `score: X` from reasoning)
+   - Heuristic fallback (increment on success, decrement on error)
+   - Trend tracking ("up", "down", "stable")
+
+When the rolling health score drops below 40, a one-time nudge is injected into context asking the model to reconsider its approach.
+
+### Duplicate Action Detection
+
+`duplicateActionDetector.ts` detects when the LLM repeats the exact same tool call (same tool + same arguments) that already produced the same observation. This prevents wasteful loops like re-reading the same file or re-running the same command.
+
+### Duplicate Iteration Reason Detection
+
+`iterationReasonDedup.ts` detects when the LLM produces reasoning that is substantively the same as a previous iteration's reasoning. Uses a three-pass matching strategy:
+
+1. **Exact match** (trimmed string equality) — penalty: -25
+2. **Case-insensitive match** — penalty: -20
+3. **Fuzzy match** (Levenshtein similarity above 0.85 threshold) — penalty: -15
+
+A rolling window (default: last 5 reasons) prevents flagging legitimately similar reasoning from earlier in a long task. Strings shorter than 20 characters are never fuzzy-matched.
+
+> **⚠️ Status Note:** The `thought` parameter for duplicate iteration reason detection is currently NOT passed by any of the four call sites (orchestrator.ts, LangGraphEngine.ts, LeanEngine.ts, SwarmEngine.ts). The feature is dormant in production — it only runs in unit tests.
+
+---
+
+## Goal Validation
+
+Before accepting a completion, xcoder runs the result past an independent validator (a second LLM call) that checks whether the claimed completion is actually supported by the recorded observations.
+
+- **Enabled by default** (`validateGoal: true`)
+- **Max retries:** 2 (configurable via `maxValidatorRetries`)
+- **Rejection feedback:** When the validator rejects a claim, the rejection reason is fed back into context and the agent tries again
+- **Exhaustion:** After max retries, the final answer is accepted without verification
+
+---
+
+## Context Compaction
+
+Context compaction (lean-token mode) is **enabled by default**. It collapses stale/superseded `read_tool` observations to save tokens.
+
+### What It Does
+
+- When a file is read or written again, every **strictly earlier** `read_tool` observation for that same path is collapsed to a short placeholder
+- The latest snapshot of any given file is always left intact
+- This also fixes a correctness issue: without compaction, old stale file snapshots stay in context looking just as authoritative as the current one
+
+### What It Does NOT Touch
+
+- Assistant messages' `tool_calls` and `reasoning_content` — DeepSeek's thinking-mode API requires these to be preserved
+- `tool_call_id` linkage — never broken
+- Non-read_tool observations
+
+### Disabling Compaction
+
+```bash
+# Keep all historical file reads in context
+xcoder --full-context-token --task "My task"
+```
+
+---
+
+## API Server
+
+xcoder includes an Express-based HTTP API server for remote task execution and UI integration.
+
+### Starting the Server
+
+```bash
+# Start the API server only
+xcoder --serve --port 3001
+
+# Start both API and UI
+xcoder --ui
+```
+
+### Authentication
+
+- **Token-based authentication** — all endpoints except `/health`, `/login`, `/register`, and `/users/count` require a Bearer token
+- **First-user registration** — the first user to register becomes admin; subsequent users must be added by an admin
+- **Password hashing** — passwords are hashed before storage
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/health` | Health check (no auth) |
+| `POST` | `/api/v1/login` | Login (no auth) |
+| `POST` | `/api/v1/logout` | Logout (no auth) |
+| `POST` | `/api/v1/register` | Register first user only (no auth) |
+| `GET` | `/api/v1/users/count` | User count (no auth) |
+| `POST` | `/api/v1/chat` | Execute a task |
+| `POST` | `/api/v1/chat/plan` | Generate a plan (returns sessionId) |
+| `POST` | `/api/v1/chat/execute` | Execute an approved plan by sessionId |
+| `GET` | `/api/v1/telemetry` | Read telemetry logs |
+| `GET` | `/api/v1/skills` | List all skills |
+| `GET` | `/api/v1/users` | List users |
+| `POST` | `/api/v1/users` | Create user (admin only) |
+| `PUT` | `/api/v1/users/:id` | Update user |
+| `DELETE` | `/api/v1/users/:id` | Delete user |
+| `GET` | `/api/v1/plans` | List plans |
+| `POST` | `/api/v1/plans` | Create plan |
+| `GET` | `/api/v1/plans/:id` | Get plan with tasks |
+| `PUT` | `/api/v1/plans/:id/status` | Update plan status |
+| `PUT` | `/api/v1/plans/:planId/tasks/:taskId` | Update task status within a plan |
+| `POST` | `/api/v1/plans/:id/tasks` | Add a task to a plan |
+| `DELETE` | `/api/v1/plans/:planId/tasks/:taskId` | Delete a task from a plan |
+| `GET` | `/api/v1/task-history` | Read task history |
+| `POST` | `/api/v1/task-history` | Add task history entry |
+| `GET` | `/api/v1/task-history/:taskId/logs` | Get telemetry logs for a specific task |
+| `GET` | `/api/v1/phase-reports` | List phase reports (requires `taskId` query param) |
+| `GET` | `/api/v1/phase-reports/:id` | Get phase report by ID |
+| `GET` | `/api/v1/wbs` | List WBS entries (requires `taskId` query param) |
+| `PUT` | `/api/v1/wbs/:id/status` | Update WBS entry status |
+| `GET` | `/api/v1/projects` | List projects |
+| `POST` | `/api/v1/projects` | Create a project |
+| `PUT` | `/api/v1/projects/:id` | Update a project |
+| `POST` | `/api/v1/projects/:id/activate` | Set a project as active |
+| `DELETE` | `/api/v1/projects/:id` | Delete a project |
+| `GET` | `/api/v1/projects/:id/files` | Browse workspace files (optional `?path=` query) |
+| `DELETE` | `/api/v1/projects/:id/files` | Delete a file from the workspace |
+| `POST` | `/api/v1/projects/:id/upload` | Upload a file to the workspace (multipart) |
+| `GET` | `/api/v1/projects/:id/download` | Download workspace as ZIP archive |
+| `GET` | `/api/v1/settings/llm-key` | Check if API key is set |
+| `PUT` | `/api/v1/settings/llm-key` | Set API key |
+| `DELETE` | `/api/v1/settings/llm-key` | Clear API key |
+
+### Chat API Response
+
+The `/chat` endpoint returns a structured response including:
+
+- `result` — The task result text
+- `plan` — The generated plan (if plan mode was active)
+- `sessionId` — For two-phase approval flow
+- `usage` — Token usage statistics
+- `healthScore` — Current self-healing health score
+- `limitation` — Explanation if the task didn't complete normally
+- `partialSuccess` — Partial progress context when iteration limit was hit
+- `subagentContext` — Preserved subagent context for "Continue" button
+
+---
+
+## UI
+
+xcoder includes a React frontend built with Vite and TypeScript.
+
+### Starting the UI
+
+```bash
+# Start both API and UI
+xcoder --ui
+
+# Or use the npm script
+npm run xcoder:ui
+```
+
+### UI Features
+
+- **Dashboard** — Overview of recent tasks and system status
+- **Chat interface** — Submit tasks and view results
+- **Plan management** — View, approve, and track plans
+- **Task history** — Browse past task executions
+- **Phase reports** — View per-phase results
+- **Telemetry viewer** — Browse thinking logs and LLM call logs
+- **User management** — Admin panel for user administration
+- **Settings** — LLM API key configuration
+- **Project management** — Add and switch between projects
+- **Diagnostics** — View health scores and system diagnostics
+
+---
+
+## Deploy Mode
+
+xcoder supports local and remote deployment via Docker Compose.
+
+### Local Deploy
+
+```bash
+# Deploy using Docker Compose (direct execution)
+xcoder --deploy --docker
+
+# Deploy with LLM as devops engineer (diagnoses and fixes issues)
+xcoder --deploy --docker --llm true
+```
+
+### Remote Deploy
+
+```bash
+# Deploy to a remote host
+xcoder --deploy --docker --remote 192.168.1.100
+
+# With custom remote path
+xcoder --deploy --docker --remote 192.168.1.100 --remote-path /opt/myapp
+
+# With LLM assistance
+xcoder --deploy --docker --remote 192.168.1.100 --llm true
+```
+
+Requires `REMOTE_SSH_USER` and `REMOTE_SSH_PASSWORD` environment variables for remote deployment.
+
+### Fleet Operations
+
+For fleet operations across multiple hosts, use the shared SSH credentials:
+
+```env
+XCODER_SSH_TARGETS=host1:22,host2:22
+XCODER_SSH_USER=fleet-user
+XCODER_SSH_PASSWORD=fleet-password
+```
+
+---
+
+## Audit & Diagnostics
+
+### ReAct Audit
+
+The built-in bug-fixing scenario battery tests the orchestrator against a set of predefined bug-fixing scenarios. Each scenario is independently verified.
+
+```bash
+xcoder --audit-react
+xcoder --audit-out reports/my-audit.md
+```
+
+### Live Diagnostics
+
+The 7-point ReAct diagnostic suite tests the real configured LLM against:
+1. Iteration stopping
+2. Restart-approval
+3. Duplicate-action avoidance
+4. Tool/skill usage
+5. Ground-up deployable app
+6. Bug fixing
+7. Full SDLC
+
+```bash
+xcoder --diagnose-live
+xcoder --diagnose-out reports/my-diagnostics.md
+```
+
+---
+
+## Configuration
+
+### OrchestratorOptions
+
+The `OrchestratorOptions` interface (defined in `src/core/orchestrator.ts`) controls engine behavior:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `maxIterations` | `number` | `20` | Max ReAct iterations per round |
+| `planMode` | `"auto" \| "always" \| "never"` | `"auto"` | Plan mode trigger strategy |
+| `validateGoal` | `boolean` | `true` | Independent validation before completion |
+| `maxValidatorRetries` | `number` | `2` | Max validator rejection retries |
+| `interactive` | `boolean` | `true` | Enable interactive stdin prompts |
+| `auto` | `boolean` | `false` | Fully autonomous mode |
+| `continueOnLimit` | `boolean` | `false` | Auto-continue past iteration limit |
+| `consoleThoughts` | `boolean` | `true` | Show live console output |
+| `leanToken` | `boolean` | `true` | Enable context compaction |
+| `fullContextToken` | `boolean` | `false` | Disable context compaction |
+| `selfHealing` | `boolean` | `true` | Enable self-healing nudges |
+| `isolatedWorkspace` | `boolean` | `false` | Run in isolated workspace copy |
+| `singlePhase` | `boolean` | `false` | Disable phase planning |
+| `io` | `AgentIO` | `AutoIO` | I/O abstraction (CLI vs API) |
+| `persistToDb` | `boolean` | `false` | Enable database persistence |
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DEEPSEEK_API_KEY` | DeepSeek API key (required) |
+| `DEEPSEEK_BASE_URL` | DeepSeek API base URL |
+| `DEEPSEEK_MODEL` | Model name (default: `deepseek-chat`) |
+| `MAX_ITERATIONS` | Override max iterations |
+| `XCODER_API_PORT` | API server port |
+| `XCODER_API_HOST` | API server host |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REMOTE_SSH_USER` | SSH user for remote deploy |
+| `REMOTE_SSH_PASSWORD` | SSH password for remote deploy |
+| `XCODER_SSH_TARGETS` | Fleet SSH targets |
+| `XCODER_SSH_USER` | Fleet SSH user |
+| `XCODER_SSH_PASSWORD` | Fleet SSH password |
+| `GITHUB_TOKEN` | GitHub token for git operations |
+
+---
+
+## Database Layer
+
+xcoder supports both SQLite and PostgreSQL for persistent storage.
+
+### SQLite
+
+- Default database for local development
+- File-based, no server required
+- Used when no `DATABASE_URL` is set
+
+### PostgreSQL
+
+- Production database for the API server
+- Configured via `DATABASE_URL` environment variable
+- Supports migrations, task history, phase reports, WBS, and telemetry
+
+### Initialization
+
+```bash
+# Initialize the database (creates tables)
+npm run init-db
+```
+
+### Database Stores
+
+| Store | Description |
+|-------|-------------|
+| `TaskHistoryStore` | Task execution history |
+| `PhaseReportStore` | Per-phase reports |
+| `WbsStore` | Work Breakdown Structure entries |
+| `PlanStore` | Saved plans |
+| `ProjectStore` | Project configurations |
+
+---
+
+## Development
+
+### Setup
+
+```bash
+# Full setup (interactive)
+npm run setup
+
+# Non-interactive setup
+npm run setup:non-interactive
+```
+
+### Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run build` | Compile TypeScript and copy agent files |
+| `npm run dev` | Run in dev mode (ts-node) |
+| `npm test` | Run test suite (Vitest) |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run xcoder:link` | Link xcoder globally via npm link |
+| `npm run xcoder:unlink` | Unlink global xcoder |
+| `npm run xcoder:install` | Install all dependencies (including UI) |
+| `npm run xcoder:build` | Build both CLI and UI |
+| `npm run xcoder:ui` | Start API + UI concurrently |
+| `npm run xcoder:api` | Start API server only |
+| `npm run package:build` | Build distributable package |
+| `npm run package:validate` | Validate package |
+| `npm run package:tarball` | Create tarball |
+| `npm run package:docker` | Build Docker image |
+| `npm run package:all` | Build all package formats |
+| `npm run init-db` | Initialize database tables |
+
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npx vitest run src/core/__tests__/iterationReasonDedup.test.ts
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+### Adding a New Skill
+
+1. Create a directory: `agent/skills/<name>/`
+2. Create `SKILL.md` with YAML frontmatter:
+
+```markdown
+---
+name: my-skill
+role: My Role
+description: What this skill does
+triggers:
+  - keyword1
+  - keyword2
+version: "1.0"
+requires_tools: []
+composes_with: []
+---
+
+## Role
+Description of the role.
+
+## Process
+Step-by-step process.
+
+## Strategies
+Strategies and approaches.
+
+## Instructions
+Specific instructions.
+```
+
+3. Run `xcoder --skills` to verify it's loaded
+
+### Adding a New Engine
+
+1. Implement the `IReactEngine` interface (and optionally `IReactEngineV2`)
+2. Register it in `src/core/engine/EngineRegistry.ts`:
+
+```typescript
+registerEngine("my-engine", ({ llm, telemetry, io, options }) => {
+  return new MyEngine(llm, telemetry, myOpts);
+});
+```
+
+3. Use it: `xcoder --engine my-engine --task "..."`
+
+---
+
+## Project Structure
+
+```
+xcoder/
+├── agent/                    # Skill definitions and protocol
+│   ├── xcoder.md             # Engineering protocol
+│   └── skills/               # 30+ skill definitions
+├── src/
+│   ├── cli/                  # CLI entry point
+│   ├── api/                  # Express API server
+│   ├── core/
