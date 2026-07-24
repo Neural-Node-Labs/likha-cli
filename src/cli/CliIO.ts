@@ -11,10 +11,11 @@ import {
   reportTotalUsage,
   reportHealthWarning,
   reportPhaseStats,
+  reportTaskTokenSummary,
 } from "./consoleReporter.js";
 
 export interface CliIOOptions {
-  /** When false, confirm() never touches stdin and just returns the default — used by
+  /** When false, confirm() and prompt() never touch stdin and just return the default — used by
    *  `--auto`/non-TTY CLI invocations that still want CLI-style colored reporting. */
   interactive?: boolean;
 }
@@ -73,6 +74,19 @@ export class CliIO implements AgentIO {
     reportPhaseStats(phaseNumber, phaseTitle, tokens, iterations, indent);
   }
 
+  taskTokenSummary(
+    taskTokenSummaries: Record<
+      string,
+      {
+        phases: Record<string, { input: number; output: number; cached: number; total: number; expectedTotal: number }>;
+        runningTotal: number;
+      }
+    >,
+    indent = 0
+  ): void {
+    reportTaskTokenSummary(taskTokenSummaries, indent);
+  }
+
   spinnerStart(label: string): void {
     this.spinner = new Spinner();
     this.spinner.start(label);
@@ -94,6 +108,22 @@ export class CliIO implements AgentIO {
       const trimmed = answer.trim().toLowerCase();
       if (!trimmed) return opts?.defaultValue ?? true;
       return trimmed.startsWith("y");
+    } finally {
+      rl.close();
+    }
+  }
+
+  async prompt(question: string, opts?: { defaultValue?: string }): Promise<string | null> {
+    const interactive = this.opts.interactive !== false;
+    if (!interactive) {
+      return opts?.defaultValue ?? null;
+    }
+    const rl = readline.createInterface({ input, output });
+    try {
+      const answer = await rl.question(`${question} `);
+      const trimmed = answer.trim();
+      if (!trimmed) return opts?.defaultValue ?? null;
+      return trimmed;
     } finally {
       rl.close();
     }

@@ -178,6 +178,34 @@ export function reportTotalUsage(
   );
 }
 
+/**
+ * Outputs a token usage summary breakdown aggregated by task and phase.
+ */
+export function reportTaskTokenSummary(
+  taskTokenSummaries: Record<
+    string,
+    {
+      phases: Record<string, { input: number; output: number; cached: number; total: number; expectedTotal: number }>;
+      runningTotal: number;
+    }
+  >,
+  indent = 0
+): void {
+  const p = prefix(indent);
+  console.log(`${p}${color("📋 Task Token Breakdown", ANSI.bold + ANSI.brightYellow)}`);
+
+  for (const [taskId, taskData] of Object.entries(taskTokenSummaries)) {
+    console.log(`${p}  ${color(`Task: ${taskId}`, ANSI.brightCyan)} (Running Total: ${taskData.runningTotal.toLocaleString()})`);
+
+    for (const [phaseId, phaseStats] of Object.entries(taskData.phases)) {
+      const details = `${phaseStats.input.toLocaleString()} in · ${phaseStats.output.toLocaleString()} out · ${phaseStats.cached.toLocaleString()} cached`;
+      console.log(
+        `${p}    ${color(`• Phase ${phaseId}:`, ANSI.dim)} ${color(`${phaseStats.total.toLocaleString()} tokens`, ANSI.yellow)} (${color(details, ANSI.dim)})`
+      );
+    }
+  }
+}
+
 function truncate(text: string, max: number): string {
   const oneLine = text.replace(/\s+/g, " ").trim();
   return oneLine.length > max ? `${oneLine.slice(0, max)}…` : oneLine;
@@ -191,4 +219,3 @@ function summarizeInput(value: unknown): string {
     return String(value);
   }
 }
-

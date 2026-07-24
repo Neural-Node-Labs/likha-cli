@@ -36,6 +36,31 @@ function prefix(indent: number): string {
 export class AutoIO implements AgentIO {
   constructor(private readonly opts: AutoIOOptions = {}) {}
 
+/**
+   * Non-interactive prompt implementation for head-less / automated runs.
+   */
+  async prompt(question: string, opts?: { defaultValue?: string }): Promise<string | null> {
+    return opts?.defaultValue ?? null;
+  }
+
+  /**
+   * Token summary output handler for task reporting.
+   */
+  taskTokenSummary(
+    taskTokenSummaries: Record<
+      string,
+      {
+        phases: Record<string, { input: number; output: number; cached: number; total: number; expectedTotal: number }>;
+        runningTotal: number;
+      }
+    >,
+    indent = 0
+  ): void {
+    if (this.opts.silent) return;
+    // Implementation or no-op depending on silent option
+  }
+
+
   private write(line: string): void {
     if (!this.opts.silent) console.log(line);
   }

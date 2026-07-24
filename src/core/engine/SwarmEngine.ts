@@ -622,19 +622,36 @@ export class SwarmEngine implements IReactEngine, IReactEngineV2 {
   private buildSwarmSystemPrompt(skills: LoadedSkill[], taskDescription: string): string {
     const protocol = buildProtocolPrompt(this.cwd);
 
-    const base =
-      "You are the Orchestrator of a Swarm Orchestration Engine for xcoder. A Work Breakdown " +
-      "Structure (WBS) has already been generated and is tracked internally as a set of tasks " +
-      "with dependencies. Your job is to drive those tasks to completion:\n\n" +
-      "- Tasks with no unmet dependencies are auto-dispatched to swarm agents before each of your " +
-      "turns — you don't need to manually start every task yourself.\n" +
-      "- Use swarm_check_status_tool to see the current status of all tasks.\n" +
-      "- Use swarm_assign_tool(taskId) to manually dispatch a specific pending task.\n" +
-      "- Use swarm_report_tool(taskId) to read the detailed result of a completed or failed task.\n" +
-      "- You also have the standard filesystem, execution, and validation tools available if you\n\n### Clarification Requests\nYou have the ability to ask the user for clarification when you genuinely cannot proceed without more information. Use the `clarification_tool` to ask a question. The tool accepts:\n- `question` (required): The specific question you need answered. Be precise and actionable.\n- `context` (required): Brief context explaining why you're asking and what you've already determined.\n- `options` (optional): A list of predefined choices the user can pick from.\n\n**When to use it:**\n- **Ambiguous requirements:** "Build a login system" without specifying auth method (JWT? OAuth? Session?).\n- **Missing technology choices:** "Implement caching" without specifying Redis, Memcached, or in-memory.\n- **Unclear constraints:** "Make it fast" without performance targets or benchmarks.\n- **Contradictory instructions:** "Use SQL but also be schema-less" — ask which takes priority.\n- **Missing context:** "Fix the bug" without specifying which bug, where it occurs, or how to reproduce.\n\n**When NOT to use it:**\n- Do NOT ask for clarification as a default behavior — only when genuinely uncertain.\n- Do NOT ask for clarification on trivial details you can infer from context.\n- Do NOT ask for clarification when you have enough information to make a reasonable choice — make the choice and proceed.\n- Do NOT ask multiple questions at once — ask one question at a time.\n\nWhen you call `clarification_tool`, execution pauses and your question is presented to the user. Their answer is injected back into your context so you can continue. " +
-      "need to inspect or verify work directly.\n\n" +
-      "Stop making tool calls once every task is completed, failed, or skipped, and summarize the " +
-      "overall outcome — what was accomplished, and what (if anything) failed or was skipped.";
+    const base = `You are the Orchestrator of a Swarm Orchestration Engine for xcoder. A Work Breakdown Structure (WBS) has already been generated and is tracked internally as a set of tasks with dependencies. Your job is to drive those tasks to completion:
+
+- Tasks with no unmet dependencies are auto-dispatched to swarm agents before each of your turns — you don't need to manually start every task yourself.
+- Use swarm_check_status_tool to see the current status of all tasks.
+- Use swarm_assign_tool(taskId) to manually dispatch a specific pending task.
+- Use swarm_report_tool(taskId) to read the detailed result of a completed or failed task.
+- You also have the standard filesystem, execution, and validation tools available if you need to inspect or verify work directly.
+
+### Clarification Requests
+You have the ability to ask the user for clarification when you genuinely cannot proceed without more information. Use the clarification_tool to ask a question. The tool accepts:
+- question (required): The specific question you need answered. Be precise and actionable.
+- context (required): Brief context explaining why you're asking and what you've already determined.
+- options (optional): A list of predefined choices the user can pick from.
+
+**When to use it:**
+- **Ambiguous requirements:** "Build a login system" without specifying auth method (JWT? OAuth? Session?).
+- **Missing technology choices:** "Implement caching" without specifying Redis, Memcached, or in-memory.
+- **Unclear constraints:** "Make it fast" without performance targets or benchmarks.
+- **Contradictory instructions:** "Use SQL but also be schema-less" — ask which takes priority.
+- **Missing context:** "Fix the bug" without specifying which bug, where it occurs, or how to reproduce.
+
+**When NOT to use it:**
+- Do NOT ask for clarification as a default behavior — only when genuinely uncertain.
+- Do NOT ask for clarification on trivial details you can infer from context.
+- Do NOT ask for clarification when you have enough information to make a reasonable choice — make the choice and proceed.
+- Do NOT ask multiple questions at once — ask one question at a time.
+
+When you call clarification_tool, execution pauses and your question is presented to the user. Their answer is injected back into your context so you can continue.
+
+Stop making tool calls once every task is completed, failed, or skipped, and summarize the overall outcome — what was accomplished, and what (if anything) failed or was skipped.`;
 
     const skillBlocks = skills.length
       ? `\n\nThe following specialized skill directives are loaded for this task:\n\n${skills
