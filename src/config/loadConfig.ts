@@ -85,7 +85,7 @@ export function loadLlmConfig(configPath: string = path.join(resolveConfigPath()
       endpoint: "/chat/completions",
       model: "deepseek-v4-flash",
       api_key_env: "DEEPSEEK_API_KEY",
-      max_tokens: 4096,
+      max_tokens: 16384,
       temperature: 0.0,
       thinking: false,
     };
