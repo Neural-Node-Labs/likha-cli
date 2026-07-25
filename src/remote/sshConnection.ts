@@ -1,5 +1,6 @@
 import { Client } from "ssh2";
 import { RemoteTarget } from "./types.js";
+import { verifyHostKeyTofu } from "./hostKeyStore.js";
 
 /** Parses "host" or "host:port" into a target (default port 22). */
 export function parseTarget(raw: string): RemoteTarget {
@@ -44,6 +45,18 @@ export function connect(target: RemoteTarget, user: string, password: string, ti
         username: user,
         password,
         readyTimeout: timeoutMs,
+        // Trust-on-first-use: without an explicit hostVerifier, ssh2 accepts any host key for
+        // any host with no warning at all. Record the fingerprint on first connect, require a
+        // match on every connect after that. See src/remote/hostKeyStore.ts for details.
+        hostHash: "sha256",
+        hostVerifier: (fingerprintHex: string) => {
+          const result = verifyHostKeyTofu(target.host, target.port, fingerprintHex);
+          if (!result.accepted) {
+            // Surface the reason via the same path a connection error would take.
+            queueMicrotask(() => conn.emit("error", new Error(result.reason)));
+          }
+          return result.accepted;
+        },
       });
   });
 }

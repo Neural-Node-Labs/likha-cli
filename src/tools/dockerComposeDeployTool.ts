@@ -20,7 +20,6 @@ export async function dockerComposeUp(
     const child = spawn("docker", ["compose", "up", "-d", "--build"], {
       cwd: targetDir,
       stdio: ["ignore", "pipe", "pipe"],
-      shell: true,
     });
 
     let stdout = "";

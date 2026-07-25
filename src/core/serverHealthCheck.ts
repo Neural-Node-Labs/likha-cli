@@ -1,5 +1,8 @@
-import { spawn, ChildProcess } from "node:child_process";
+import { spawn, execFile, ChildProcess } from "node:child_process";
+import { promisify } from "node:util";
 import http from "node:http";
+
+const execFileP = promisify(execFile);
 
 export interface HealthCheckResult {
   responded: boolean;
@@ -24,6 +27,7 @@ export async function startServerAndCheckHealth(
 ): Promise<HealthCheckResult> {
   const timeoutMs = opts.timeoutMs ?? 8_000;
   const pollIntervalMs = opts.pollIntervalMs ?? 300;
+  const isWindows = process.platform === "win32";
 
   let child: ChildProcess | undefined;
   try {
@@ -31,7 +35,11 @@ export async function startServerAndCheckHealth(
       cwd: dir,
       shell: true,
       env: { ...process.env, PORT: String(port) },
-      detached: true, // own process group -- required so we can kill the REAL process, not just the shell wrapper `shell:true` creates
+      // On POSIX this puts the child in its own process group so we can kill the whole tree
+      // (shell + whatever it spawned) via a negative-pid kill below. `detached` has no such
+      // effect on Windows -- process groups there are handled entirely differently, so the
+      // finally block below branches on platform instead of relying on this.
+      detached: !isWindows,
     });
 
     let earlyExit: string | undefined;
@@ -55,15 +63,33 @@ export async function startServerAndCheckHealth(
     return { responded: false, detail: `timed out after ${timeoutMs}ms waiting for a response on port ${port}${healthPath}. stderr: ${stderrBuf.slice(0, 500)}` };
   } finally {
     if (child?.pid && !child.killed) {
-      try {
-        // Negative pid = kill the whole process group (shell + whatever it spawned), not just the shell.
-        process.kill(-child.pid, "SIGKILL");
-      } catch {
-        // Group may already be gone (process exited on its own) -- fall back to a direct kill attempt.
+      if (isWindows) {
+        // shell:true on Windows means child.pid is cmd.exe's PID, not the real process
+        // startCommand launched (e.g. `node app.js` runs as a grandchild). `detached` +
+        // negative-pid kill is a POSIX process-group convention that doesn't apply here, so a
+        // plain child.kill() would only kill cmd.exe and leave the actual server orphaned and
+        // still bound to the port. `taskkill /T` kills the whole process tree instead.
         try {
-          child.kill("SIGKILL");
+          await execFileP("taskkill", ["/PID", String(child.pid), "/T", "/F"]);
         } catch {
-          /* already dead */
+          // Tree may already be gone -- fall back to a direct kill attempt.
+          try {
+            child.kill();
+          } catch {
+            /* already dead */
+          }
+        }
+      } else {
+        try {
+          // Negative pid = kill the whole process group (shell + whatever it spawned), not just the shell.
+          process.kill(-child.pid, "SIGKILL");
+        } catch {
+          // Group may already be gone (process exited on its own) -- fall back to a direct kill attempt.
+          try {
+            child.kill("SIGKILL");
+          } catch {
+            /* already dead */
+          }
         }
       }
     }

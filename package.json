@@ -1,16 +1,16 @@
 {
   "name": "xcoder",
   "version": "0.2.0",
-  "description": "xcoder — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.",
+  "description": "xcoder \u2014 a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.",
   "license": "MIT",
   "type": "module",
   "bin": {
     "xcoder": "dist/cli/index.js"
   },
   "scripts": {
-    "xcoder:link": "npm link  --ignore-scripts",
+    "xcoder:link": "npm link",
     "xcoder:unlink": "npm unlink -g xcoder",
-    "xcoder:install": "npm install  --ignore-scripts && npm install --prefix ui",
+    "xcoder:install": "npm install && npm install --prefix ui",
     "xcoder:build": "npm run build && npm run build --prefix ui",
     "xcoder:ui": "concurrently \"node dist/cli/index.js --serve --port 3001\" \"npm run dev --prefix ui\"",
     "xcoder:api": "node dist/cli/index.js --serve --port 3001",
@@ -19,16 +19,16 @@
     "dev": "ts-node --esm src/cli/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "package:build": "bash scripts/build.sh --compile",
-    "package:validate": "bash scripts/build.sh --validate",
-    "package:tarball": "bash scripts/build.sh --tarball",
-    "package:docker": "bash scripts/build.sh --docker",
-    "package:all": "bash scripts/build.sh --all",
-    "setup": "bash scripts/setup.sh",
-    "setup:non-interactive": "bash scripts/setup.sh --non-interactive",
-    "install": "bash scripts/install.sh",
-    "install:docker": "bash scripts/install-docker.sh",
-    "init-db": "bash scripts/init-db.sh"
+    "package:build": "node scripts/cross-platform-shell.mjs build -- --compile",
+    "package:validate": "node scripts/cross-platform-shell.mjs build -- --validate",
+    "package:tarball": "node scripts/cross-platform-shell.mjs build -- --tarball",
+    "package:docker": "node scripts/cross-platform-shell.mjs build -- --docker",
+    "package:all": "node scripts/cross-platform-shell.mjs build -- --all",
+    "setup": "node scripts/cross-platform-shell.mjs setup",
+    "setup:non-interactive": "node scripts/cross-platform-shell.mjs setup -- --non-interactive",
+    "deploy:install": "node scripts/cross-platform-shell.mjs install",
+    "install:docker": "node scripts/cross-platform-shell.mjs install-docker",
+    "init-db": "node scripts/cross-platform-shell.mjs init-db"
   },
   "dependencies": {
     "@langchain/langgraph": "^1.4.8",

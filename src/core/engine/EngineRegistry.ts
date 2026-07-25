@@ -54,6 +54,7 @@ registerEngine("lean", ({ llm, telemetry, io, options }) => {
     maxValidatorRetries: options?.maxValidatorRetries,
     selfHealing: options?.selfHealing,
     consoleThoughts: options?.consoleThoughts,
+    fullContextToken: options?.fullContextToken,
     io,
   };
   return new LeanEngine(llm, telemetry, leanOpts);
@@ -72,6 +73,7 @@ registerEngine("swarm", ({ llm, telemetry, io, options }) => {
     maxValidatorRetries: options?.maxValidatorRetries,
     selfHealing: options?.selfHealing,
     consoleThoughts: options?.consoleThoughts,
+    fullContextToken: options?.fullContextToken,
     io,
     maxParallelAgents: 5,
   };
@@ -92,6 +94,7 @@ registerEngine("langgraph", ({ llm, telemetry, io, options }) => {
     maxValidatorRetries: options?.maxValidatorRetries,
     selfHealing: options?.selfHealing,
     consoleThoughts: options?.consoleThoughts,
+    fullContextToken: options?.fullContextToken,
     io,
   };
   return new LangGraphEngine(llm, telemetry, lgOpts);

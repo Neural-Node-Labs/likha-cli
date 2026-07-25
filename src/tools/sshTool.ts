@@ -3,6 +3,7 @@ import { Client, SFTPWrapper } from "ssh2";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Readable } from "node:stream";
+import { verifyHostKeyTofu } from "../remote/hostKeyStore.js";
 
 export interface SshTarget {
   host: string;
@@ -63,9 +64,14 @@ function ssh2Exec(target: SshTarget, command: string, timeoutMs = 60_000): Promi
       username: target.user,
       password: target.password,
       readyTimeout: 10000,
-      // Accept host key automatically
-      hostHash: undefined,
-      hostVerifier: () => true,
+      // Trust-on-first-use: record the fingerprint on first connect, require a match on
+      // every connect after that. See src/remote/hostKeyStore.ts for details/rationale.
+      hostHash: "sha256",
+      hostVerifier: (fingerprintHex: string) => {
+        const result = verifyHostKeyTofu(target.host, target.port ?? 22, fingerprintHex);
+        if (!result.accepted) stderr += result.reason;
+        return result.accepted;
+      },
     });
 
     // Timeout
@@ -113,8 +119,14 @@ function ssh2Upload(target: SshTarget, localPath: string, remotePath: string, re
       username: target.user,
       password: target.password,
       readyTimeout: 10000,
-      hostHash: undefined,
-      hostVerifier: () => true,
+      // Trust-on-first-use: record the fingerprint on first connect, require a match on
+      // every connect after that. See src/remote/hostKeyStore.ts for details/rationale.
+      hostHash: "sha256",
+      hostVerifier: (fingerprintHex: string) => {
+        const result = verifyHostKeyTofu(target.host, target.port ?? 22, fingerprintHex);
+        if (!result.accepted) stderr += result.reason;
+        return result.accepted;
+      },
     });
   });
 }
@@ -211,8 +223,14 @@ function ssh2Download(target: SshTarget, remotePath: string, localPath: string, 
       username: target.user,
       password: target.password,
       readyTimeout: 10000,
-      hostHash: undefined,
-      hostVerifier: () => true,
+      // Trust-on-first-use: record the fingerprint on first connect, require a match on
+      // every connect after that. See src/remote/hostKeyStore.ts for details/rationale.
+      hostHash: "sha256",
+      hostVerifier: (fingerprintHex: string) => {
+        const result = verifyHostKeyTofu(target.host, target.port ?? 22, fingerprintHex);
+        if (!result.accepted) stderr += result.reason;
+        return result.accepted;
+      },
     });
   });
 }

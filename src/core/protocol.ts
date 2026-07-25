@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { resolveConfigPath } from "../config/loadConfig.js";
-import os from 'node:os';
+import { describeShell } from "../tools/runCommandTool.js";
+
 const PROTOCOL_PATH = path.join("xcoder.md");
 const LESSONS_PATH = path.join("tasks", "lessons.md");
 const TODO_PATH = path.join("tasks", "todo.md");
@@ -47,20 +48,6 @@ export function appendTodoReview(cwd: string, review: string): void {
   fs.appendFileSync(p, `\n## Review\n${review}\n`, "utf-8");
 }
 
-export function getOS(): string {
-    const platform: NodeJS.Platform = os.platform();
-    switch (platform) {
-        case 'win32':
-          return 'Windows';
-        case 'darwin':
-          return 'macOS';
-        case 'linux':
-          return 'Linux';
-        default:
-          return platform;
-      }
-}
-
 /**
  * Builds the system prompt with the protocol/lessons/skills wrapped in the XML tags
  * DeepSeek's docs recommend for segmenting a large instruction payload within one message.
@@ -68,18 +55,13 @@ export function getOS(): string {
 export function buildProtocolPrompt(cwd: string = process.cwd()): string {
   const protocol = loadProtocol(resolveConfigPath());
   const lessons = loadLessons(cwd);
-  const os_platform = getOS();
 
-  let out = "";
+  let out = `<runtime_environment>\nCommands from run_command_tool execute on this host via ${describeShell()}\n</runtime_environment>\n\n`;
   if (protocol) {
     out += `<system_directive>\nYou are xcoder, operating under the following engineering protocol.\n</system_directive>\n\n<engineering_protocol>\n${protocol}\n</engineering_protocol>\n\n`;
   }
   if (lessons) {
     out += `<lessons_learned>\nPatterns captured from prior corrections in this workspace — apply them proactively.\n${lessons}\n</lessons_learned>\n\n`;
-  }
-
-  if (os_platform) {
-    out += `<os_platform>\nOS Platform used command available for this platform.\n${os_platform}\n</os_platform>\n\n`;
   }
   return out;
 }

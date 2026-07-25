@@ -89,25 +89,79 @@ export function getTokensForUser(username: string): string[] {
 }
 
 // ─── Password Hashing ───────────────────────────────────────────────────────
+//
+// Uses scrypt (via Node's built-in node:crypto — no extra dependency) rather than a single
+// SHA-256 pass. SHA-256 is a fast general-purpose hash: cheap to compute means cheap to brute
+// force at scale on GPUs/ASICs. scrypt is a deliberately slow, memory-hard KDF designed for
+// password storage, which is what we actually want here.
+//
+// Format: "scrypt:N:r:p:salt:hash" so cost parameters travel with the hash and can be bumped
+// later (e.g. increasing N) without invalidating already-stored hashes using the old parameters.
+// Old "salt:hash" (bare SHA-256) values from before this change still verify correctly via the
+// legacy path below, so existing users aren't locked out — but every successful login re-hashes
+// with scrypt and the caller should persist the upgraded hash (see verifyPasswordWithUpgrade).
 
-/**
- * Hash a password using SHA-256 with a random salt.
- * Returns "salt:hash" format.
- */
-export function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.createHash("sha256").update(salt + password).digest("hex");
-  return `${salt}:${hash}`;
+const SCRYPT_N = 16384; // CPU/memory cost factor (2^14) — Node's documented default
+const SCRYPT_R = 8;
+const SCRYPT_P = 1;
+const SCRYPT_KEYLEN = 64;
+
+function scryptHash(password: string, salt: string): string {
+  return crypto.scryptSync(password, salt, SCRYPT_KEYLEN, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P }).toString("hex");
 }
 
 /**
- * Verify a password against a stored hash.
+ * Hash a password using scrypt with a random salt.
+ * Returns "scrypt:N:r:p:salt:hash" format.
+ */
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = scryptHash(password, salt);
+  return `scrypt:${SCRYPT_N}:${SCRYPT_R}:${SCRYPT_P}:${salt}:${hash}`;
+}
+
+/**
+ * Verify a password against a stored hash. Supports both the current scrypt format
+ * ("scrypt:N:r:p:salt:hash") and the legacy bare SHA-256 format ("salt:hash") for
+ * hashes created before this change.
  */
 export function verifyPassword(password: string, stored: string): boolean {
-  const [salt, hash] = stored.split(":");
-  if (!salt || !hash) return false;
-  const computed = crypto.createHash("sha256").update(salt + password).digest("hex");
-  return computed === hash;
+  const parts = stored.split(":");
+
+  if (parts[0] === "scrypt" && parts.length === 6) {
+    const [, nStr, rStr, pStr, salt, hash] = parts;
+    const n = Number(nStr);
+    const r = Number(rStr);
+    const p = Number(pStr);
+    if (!salt || !hash || !Number.isFinite(n) || !Number.isFinite(r) || !Number.isFinite(p)) return false;
+    const computed = crypto.scryptSync(password, salt, SCRYPT_KEYLEN, { N: n, r, p }).toString("hex");
+    return timingSafeEqualHex(computed, hash);
+  }
+
+  // Legacy path: bare "salt:hash" SHA-256 hashes from before scrypt was introduced.
+  if (parts.length === 2) {
+    const [salt, hash] = parts;
+    if (!salt || !hash) return false;
+    const computed = crypto.createHash("sha256").update(salt + password).digest("hex");
+    return timingSafeEqualHex(computed, hash);
+  }
+
+  return false;
+}
+
+/**
+ * True if a stored hash is in the legacy (pre-scrypt) format and should be upgraded
+ * on next successful login.
+ */
+export function isLegacyHash(stored: string): boolean {
+  return stored.split(":").length === 2;
+}
+
+function timingSafeEqualHex(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, "hex");
+  const bufB = Buffer.from(b, "hex");
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 // ─── Login Verification ─────────────────────────────────────────────────────
@@ -122,6 +176,53 @@ export function verifyLogin(username: string, password: string): StoredUser | nu
   if (!verifyPassword(password, user.passwordHash)) return null;
   return user;
 }
+
+// ─── Login Rate Limiting ────────────────────────────────────────────────────
+//
+// Simple in-memory sliding-window limiter for /login and /register. Password hashing alone
+// (even scrypt) doesn't stop an attacker from just trying many passwords against the endpoint
+// — this caps how many attempts a given key (IP + username) gets in a time window. In-memory
+// is fine for xcoder's typical single-process deployment; a multi-instance deployment behind a
+// load balancer would need a shared store (Redis, etc.) instead.
+
+interface RateLimitEntry {
+  attempts: number[]; // timestamps (ms) of recent attempts within the window
+}
+
+const rateLimitStore = new Map<string, RateLimitEntry>();
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX_ATTEMPTS = 10;
+
+/**
+ * Records an attempt for `key` and returns whether the caller is currently rate-limited.
+ * `key` should combine the identifying info that matters (e.g. `${ip}:${username}`).
+ */
+export function checkRateLimit(key: string): { limited: boolean; retryAfterMs?: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(key) ?? { attempts: [] };
+
+  // Drop attempts outside the window
+  entry.attempts = entry.attempts.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+
+  if (entry.attempts.length >= RATE_LIMIT_MAX_ATTEMPTS) {
+    const oldest = entry.attempts[0];
+    rateLimitStore.set(key, entry);
+    return { limited: true, retryAfterMs: RATE_LIMIT_WINDOW_MS - (now - oldest) };
+  }
+
+  entry.attempts.push(now);
+  rateLimitStore.set(key, entry);
+  return { limited: false };
+}
+
+/** Periodically clean up expired entries so the map doesn't grow unbounded. */
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore) {
+    entry.attempts = entry.attempts.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    if (entry.attempts.length === 0) rateLimitStore.delete(key);
+  }
+}, RATE_LIMIT_WINDOW_MS).unref();
 
 // ─── Express Middleware ─────────────────────────────────────────────────────
 

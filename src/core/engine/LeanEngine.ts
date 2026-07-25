@@ -4,6 +4,7 @@ import { dispatchToolCall } from "../../tools/toolDispatcher.js";
 import { SkillRegistry } from "../skillRegistry.js";
 import { buildProtocolPrompt } from "../protocol.js";
 import { validateGoal, buildObservationTranscript } from "../goalValidator.js";
+import { compactStaleFileReads } from "../contextCompaction.js";
 import { createHealthState, scoreStep, rollingHealth, HealthState } from "../stepScorer.js";
 import { AgentIO } from "../io/AgentIO.js";
 import { AutoIO } from "../io/AutoIO.js";
@@ -47,6 +48,9 @@ export interface LeanEngineOptions {
   selfHealing?: boolean;
   consoleThoughts?: boolean;
   io?: AgentIO;
+  /** Set to true to keep every historical read_tool observation in full (disables the default
+   *  lean-token context compaction). See src/core/contextCompaction.ts. Default: false (compact). */
+  fullContextToken?: boolean;
 }
 
 // ─── Engine ───────────────────────────────────────────────────────────────────────
@@ -372,6 +376,15 @@ export class LeanEngine implements IReactEngine, IReactEngineV2 {
           name: result.toolName,
           content: JSON.stringify(result.observation),
         });
+
+        // Context compaction (lean-token mode, default ON): collapse stale full-file read_tool
+        // observations once a fresher read/write of the same path exists. See contextCompaction.ts.
+        if (!this.opts.fullContextToken && (result.toolName === "read_tool" || result.toolName === "write_edit_tool")) {
+          const args = step.action?.input as { filePath?: string } | undefined;
+          if (args?.filePath) {
+            compactStaleFileReads(messages, args.filePath, result.toolCallId);
+          }
+        }
       }
 
       // ── Self-healing nudge ──

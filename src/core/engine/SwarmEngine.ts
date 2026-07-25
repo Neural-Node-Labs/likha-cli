@@ -62,6 +62,9 @@ export interface SwarmEngineOptions {
   persistArtifacts?: boolean;
   /** Timeout (ms) for each swarm agent task. Default: 300000 (5 min) */
   agentTimeoutMs?: number;
+  /** Set to true to keep every historical read_tool observation in full (disables the default
+   *  lean-token context compaction) in each swarm agent's LeanEngine. Default: false (compact). */
+  fullContextToken?: boolean;
 }
 
 export interface WbsTask {
@@ -770,6 +773,7 @@ Stop making tool calls once every task is completed, failed, or skipped, and sum
       validateGoal: false,
       selfHealing: this.opts.selfHealing,
       consoleThoughts: false,
+      fullContextToken: this.opts.fullContextToken,
       io: this.io,
     });
 
@@ -894,6 +898,7 @@ Stop making tool calls once every task is completed, failed, or skipped, and sum
       maxValidatorRetries: this.opts.maxValidatorRetries,
       selfHealing: this.opts.selfHealing,
       consoleThoughts: this.opts.consoleThoughts,
+      fullContextToken: this.opts.fullContextToken,
       io: this.io,
     });
 

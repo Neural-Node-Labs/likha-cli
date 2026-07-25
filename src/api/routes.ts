@@ -8,7 +8,7 @@ import { DeepSeekClient } from "../llm/deepseekClient.js";
 import { FileTelemetry } from "../telemetry/logger.js";
 import { loadLlmConfig } from "../config/loadConfig.js";
 import { SkillRegistry } from "../core/skillRegistry.js";
-import { authMiddleware, verifyLogin, generateToken, revokeToken, setUserStore, getUserStore, hashPassword, StoredUser } from "./auth.js";
+import { authMiddleware, verifyLogin, generateToken, revokeToken, setUserStore, getUserStore, hashPassword, isLegacyHash, checkRateLimit, StoredUser } from "./auth.js";
 import { registerProjectRoutes } from "./projectRoutes.js";
 import { registerPlanRoutes } from "./planRoutes.js";
 import { listProjects, getProject } from "./projectStore.js";
@@ -81,11 +81,29 @@ export function createRouter(): Router {
       return;
     }
 
+    const rateLimitKey = `${req.ip}:${username.trim().toLowerCase()}`;
+    const { limited, retryAfterMs } = checkRateLimit(rateLimitKey);
+    if (limited) {
+      const body: ApiResponse = {
+        success: false,
+        error: `Too many login attempts. Try again in ${Math.ceil((retryAfterMs ?? 0) / 1000)}s.`,
+      };
+      res.status(429).json(body);
+      return;
+    }
+
     const verifiedUser = verifyLogin(username.trim(), password);
     if (!verifiedUser) {
       const body: ApiResponse = { success: false, error: "Invalid username or password" };
       res.status(401).json(body);
       return;
+    }
+
+    // Opportunistically upgrade any pre-scrypt (legacy SHA-256) hash now that we have the
+    // plaintext password in hand, so stored hashes migrate to scrypt over time without a
+    // separate migration step or forcing a password reset.
+    if (isLegacyHash(verifiedUser.passwordHash)) {
+      verifiedUser.passwordHash = hashPassword(password);
     }
 
     const token = generateToken(verifiedUser.username, verifiedUser.role);

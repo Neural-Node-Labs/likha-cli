@@ -110,6 +110,7 @@ import { SkillRegistry } from "../skillRegistry.js";
 import { buildProtocolPrompt } from "../protocol.js";
 import { validateGoal, buildObservationTranscript } from "../goalValidator.js";
 import { createHealthState, scoreStep, rollingHealth, HealthState } from "../stepScorer.js";
+import { compactStaleFileReads } from "../contextCompaction.js";
 import { AgentIO } from "../io/AgentIO.js";
 import { AutoIO } from "../io/AutoIO.js";
 import {
@@ -178,6 +179,10 @@ export interface LangGraphEngineOptions {
 
   /** Custom I/O adapter (default: `AutoIO`). */
   io?: AgentIO;
+
+  /** Set to true to keep every historical read_tool observation in full (disables the default
+   *  lean-token context compaction). See src/core/contextCompaction.ts. Default: false (compact). */
+  fullContextToken?: boolean;
 }
 
 // ─── Graph State Annotation ───────────────────────────────────────────────────────
@@ -677,6 +682,15 @@ export class LangGraphEngine implements IReactEngine, IReactEngineV2 {
         name: result.toolName,
         content: JSON.stringify(result.observation),
       });
+
+      // Context compaction (lean-token mode, default ON): collapse stale full-file read_tool
+      // observations once a fresher read/write of the same path exists. See contextCompaction.ts.
+      if (!this.opts.fullContextToken && (result.toolName === "read_tool" || result.toolName === "write_edit_tool")) {
+        const args = safeParse(call.function.arguments) as { filePath?: string } | undefined;
+        if (args?.filePath) {
+          compactStaleFileReads(newMessages, args.filePath, result.toolCallId);
+        }
+      }
     }
 
     // ── Self-healing nudge ──
