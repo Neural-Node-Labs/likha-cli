@@ -1,27 +1,41 @@
 /**
- * Centralized database initialization for the xcoder API server.
+ * Centralized database initialization for the xcoder API server and CLI.
  *
- * Creates all required tables at server startup so that stores can assume
- * the database is already initialized. This replaces the per-store lazy
- * initialization pattern where each store created its own connection and
- * called init() on first use.
+ * Creates all required tables and runs pending migrations so that stores
+ * can assume the database is fully initialized. This replaces the per-store
+ * lazy initialization pattern where each store created its own connection
+ * and called init() on first use.
  *
  * Usage:
  *   import { initializeDatabase } from "../db/initialize.js";
  *   const db = await initializeDatabase();
  *   // db is ready — pass to stores
+ *
+ * CLI usage:
+ *   xcoder --initialize-db
  */
 
 import { createConnection } from "./connection.js";
+import { runMigrations } from "./migrations.js";
 import type { DatabaseClient } from "./types.js";
 
 /**
- * Initialize the database: open the connection, create all tables, and
- * return the ready-to-use client.
+ * Initialize the database: open the connection, create all tables, run
+ * pending migrations, and return the ready-to-use client.
  *
- * Safe to call multiple times — all CREATE TABLE statements use IF NOT EXISTS.
+ * Idempotent — safe to call multiple times:
+ * - All CREATE TABLE statements use IF NOT EXISTS.
+ * - Migrations are tracked in the `_migrations` table and skipped if
+ *   already applied.
+ * - The connection's own init() is a no-op after the first call.
+ *
+ * @param runMigrationsAfterInit - Whether to run pending migrations after
+ *   creating tables. Defaults to true. Set to false if you only want the
+ *   base schema without migrations (e.g. for testing).
  */
-export async function initializeDatabase(): Promise<DatabaseClient> {
+export async function initializeDatabase(
+  runMigrationsAfterInit: boolean = true
+): Promise<DatabaseClient> {
   const db = createConnection();
   await db.init();
 
@@ -34,10 +48,9 @@ export async function initializeDatabase(): Promise<DatabaseClient> {
       status TEXT NOT NULL DEFAULT 'active',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_plans_status ON plans(status);
+    )
   `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_plans_status ON plans(status)`);
 
   // ─── Plan Tasks ───────────────────────────────────────────────────────
   await db.query(`
@@ -49,10 +62,9 @@ export async function initializeDatabase(): Promise<DatabaseClient> {
       task_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_plan_tasks_plan_id ON plan_tasks(plan_id);
+    )
   `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_plan_tasks_plan_id ON plan_tasks(plan_id)`);
 
   // ─── Phase Reports ────────────────────────────────────────────────────
   await db.query(`
@@ -65,10 +77,9 @@ export async function initializeDatabase(): Promise<DatabaseClient> {
       tokens INTEGER DEFAULT 0,
       iterations INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_phase_reports_task_id ON phase_reports(task_id);
+    )
   `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_phase_reports_task_id ON phase_reports(task_id)`);
 
   // ─── WBS Entries ──────────────────────────────────────────────────────
   await db.query(`
@@ -81,10 +92,9 @@ export async function initializeDatabase(): Promise<DatabaseClient> {
       status TEXT NOT NULL DEFAULT 'pending',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_wbs_entries_task_id ON wbs_entries(task_id);
+    )
   `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_wbs_entries_task_id ON wbs_entries(task_id)`);
 
   // ─── Task History ─────────────────────────────────────────────────────
   await db.query(`
@@ -95,10 +105,9 @@ export async function initializeDatabase(): Promise<DatabaseClient> {
       timestamp TEXT NOT NULL,
       iterations INTEGER DEFAULT 0,
       total_tokens INTEGER
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_task_history_timestamp ON task_history(timestamp DESC);
+    )
   `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_task_history_timestamp ON task_history(timestamp DESC)`);
 
   // ─── Projects ─────────────────────────────────────────────────────────
   await db.query(`
@@ -109,12 +118,17 @@ export async function initializeDatabase(): Promise<DatabaseClient> {
       active INTEGER DEFAULT 0,
       include_in_llm INTEGER DEFAULT 0,
       created_at TEXT NOT NULL
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_projects_active ON projects(active);
+    )
   `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_projects_active ON projects(active)`);
 
   console.log("[Database] All tables initialized.");
+
+  // ─── Run Migrations ───────────────────────────────────────────────────
+  if (runMigrationsAfterInit) {
+    await runMigrations(db);
+  }
+
   return db;
 }
 

@@ -15,6 +15,8 @@ export type { DatabaseType, DatabaseClient, QueryResult } from "./types.js";
 export type { DatabaseConfig } from "./config.js";
 export { loadDatabaseConfig } from "./config.js";
 export { createConnection, createConnectionAsync } from "./connection.js";
+export { initializeDatabase } from "./initialize.js";
+export { runMigrations, listMigrations } from "./migrations.js";
 export { SqliteClient } from "./sqliteClient.js";
 export { PostgresClient } from "./postgresClient.js";
 

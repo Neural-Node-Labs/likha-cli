@@ -17,6 +17,7 @@ import { runLiveDiagnostics } from "../core/liveDiagnostics.js";
 import { startApiServer } from "../api/server.js";
 import { dockerComposeUp } from "../tools/dockerComposeDeployTool.js";
 import { deployWorkspaceViaSsh } from "../tools/dockerDeploySshTool.js";
+import { initializeDatabase } from "../db/initialize.js";
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -52,6 +53,7 @@ program
   .option("--remote <ip>", "remote host IP to deploy to (uses REMOTE_SSH_USER and REMOTE_SSH_PASSWORD from .env)")
   .option("--remote-path <path>", "remote directory path for deployment (default: /opt/xcoder)")
   .option("--engine <name>", `orchestration engine to use (default: "${DEFAULT_ENGINE}"). Registered engines: ${listEngines().join(", ")}. See src/core/engine/EngineRegistry.ts to register another implementation.`, DEFAULT_ENGINE)
+  .option("--initialize-db", "initialize the SQLite database (create tables, run migrations). Idempotent — safe to run multiple times.")
   .action(async (taskArg, opts, cmd) => {
 
 
@@ -60,6 +62,22 @@ program
     const telemetry = new FileTelemetry(cwd);
     const llmConfig = loadLlmConfig();
     const io = new CliIO({ interactive: !opts.auto });
+
+    // ─── Initialize Database ────────────────────────────────────────────────
+    if (opts.initializeDb) {
+      try {
+        io.log("[Database] Initializing database (create tables + run migrations)...");
+        const db = await initializeDatabase();
+        io.log("[Database] Database initialized successfully.");
+        await db.close();
+      } catch (err) {
+        io.error(
+          `[Database] Initialization failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+        process.exit(1);
+      }
+      return;
+    }
 
     // Merge positional [task] with --task: positional takes precedence if both are given
     const task = taskArg ?? opts.task;
