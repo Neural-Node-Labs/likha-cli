@@ -75,7 +75,7 @@ export function resolveConfigPath(): string {
 
 
 
-export function loadLlmConfig(configPath: string = path.join(resolveConfigPath(), RELATIVE_CONFIG_PATH)): LlmConfig {
+export function loadLlmConfig(configPath: string = path.join(resolveConfigPath(), "config", "llm.yaml")): LlmConfig {
   if (!fs.existsSync(configPath)) {
     // Sane default: DeepSeek non-thinking mode, current model IDs, temperature 0.0 per
     // DeepSeek's own published guidance for code/math tasks (this is a coding agent).

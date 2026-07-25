@@ -102,6 +102,10 @@ export interface LlmResponse {
   toolCalls: ToolCall[];
   reasoningContent?: string; // present in thinking mode; must be carried into the next assistant message
   usage?: LlmUsage;
+  /** "length" means the completion was cut off by max_tokens, not a natural stop -- any
+   *  tool_calls arguments generated in a "length"-truncated response (e.g. a write_edit_tool
+   *  content/newStr payload) may be truncated mid-value. See src/core/truncationGuard.ts. */
+  finishReason?: "stop" | "length" | "tool_calls" | "content_filter" | string;
 }
 
 export interface LlmClient {

@@ -5,6 +5,7 @@ import { SkillRegistry } from "../skillRegistry.js";
 import { buildProtocolPrompt } from "../protocol.js";
 import { validateGoal, buildObservationTranscript } from "../goalValidator.js";
 import { compactStaleFileReads } from "../contextCompaction.js";
+import { checkForTruncatedToolCalls, truncationWarningFor } from "../truncationGuard.js";
 import { createHealthState, scoreStep, rollingHealth, HealthState } from "../stepScorer.js";
 import { AgentIO } from "../io/AgentIO.js";
 import { AutoIO } from "../io/AutoIO.js";
@@ -339,7 +340,12 @@ export class LeanEngine implements IReactEngine, IReactEngineV2 {
         reasoning_content: response.reasoningContent,
       });
 
-      for (const call of response.toolCalls) {
+      const { safeCalls, blockedCalls } = checkForTruncatedToolCalls(response);
+      for (const blocked of blockedCalls) {
+        messages.push({ role: "tool", tool_call_id: blocked.id, name: blocked.function.name, content: truncationWarningFor(blocked) });
+      }
+
+      for (const call of safeCalls) {
         const phase = classifyPhase(call.function.name, call.function.arguments);
         const step: ReActStep = {
           iteration,

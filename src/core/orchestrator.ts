@@ -7,6 +7,7 @@ import { dispatchToolCall } from "../tools/toolDispatcher.js";
 import { buildProtocolPrompt, writeTodo, appendTodoReview } from "./protocol.js";
 import { validateGoal, buildObservationTranscript } from "./goalValidator.js";
 import { compactStaleFileReads } from "./contextCompaction.js";
+import { checkForTruncatedToolCalls, truncationWarningFor } from "./truncationGuard.js";
 import { createHealthState, scoreStep, rollingHealth, HealthState } from "./stepScorer.js";
 import { appendTaskHistory } from "./taskHistory.js";
 import { TaskHistoryStore } from "../api/taskHistoryStore.js";
@@ -616,7 +617,13 @@ export class ReActOrchestrator implements IReactEngine {
         reasoning_content: response.reasoningContent,
       });
 
-      for (const call of response.toolCalls) {
+      const { safeCalls, blockedCalls } = checkForTruncatedToolCalls(response);
+      for (const blocked of blockedCalls) {
+        messages.push({ role: "tool", tool_call_id: blocked.id, name: blocked.function.name, content: truncationWarningFor(blocked) });
+        if (showConsole) this.io.observation(`[withheld — response truncated by token limit] ${blocked.function.name}`, true, indent);
+      }
+
+      for (const call of safeCalls) {
         if (call.function.name === "subagent_tool") {
           const parsedArgs = safeParse(call.function.arguments);
           const subTaskLabel =

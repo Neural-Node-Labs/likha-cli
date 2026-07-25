@@ -111,6 +111,7 @@ import { buildProtocolPrompt } from "../protocol.js";
 import { validateGoal, buildObservationTranscript } from "../goalValidator.js";
 import { createHealthState, scoreStep, rollingHealth, HealthState } from "../stepScorer.js";
 import { compactStaleFileReads } from "../contextCompaction.js";
+import { checkForTruncatedToolCalls, truncationWarningFor } from "../truncationGuard.js";
 import { AgentIO } from "../io/AgentIO.js";
 import { AutoIO } from "../io/AutoIO.js";
 import {
@@ -236,6 +237,13 @@ const GraphStateAnnotation = Annotation.Root({
   cancelled: Annotation<boolean>({
     reducer: (left, right) => right ?? left,
     default: () => false,
+  }),
+
+  /** finish_reason of the most recent LLM response ("length" = cut off by max_tokens). Used by
+   *  toolsNode to withhold large-payload tool calls generated from a truncated completion. */
+  lastFinishReason: Annotation<string | undefined>({
+    reducer: (left, right) => right ?? left,
+    default: () => undefined,
   }),
 });
 
@@ -433,6 +441,7 @@ export class LangGraphEngine implements IReactEngine, IReactEngineV2 {
       done: false,
       validatorRejections: 0,
       cancelled: false,
+      lastFinishReason: undefined,
     };
 
     // ── Run the graph ──
@@ -633,6 +642,7 @@ export class LangGraphEngine implements IReactEngine, IReactEngineV2 {
       messages: newMessages,
       iteration,
       done: false,
+      lastFinishReason: response.finishReason,
     };
   }
 
@@ -649,7 +659,17 @@ export class LangGraphEngine implements IReactEngine, IReactEngineV2 {
     const showConsole = this.opts.consoleThoughts !== false;
     const newMessages = [...state.messages];
 
-    for (const call of lastMsg.tool_calls) {
+    const { safeCalls, blockedCalls } = checkForTruncatedToolCalls({
+      content: lastMsg.content ?? "",
+      toolCalls: lastMsg.tool_calls,
+      finishReason: state.lastFinishReason,
+    });
+    for (const blocked of blockedCalls) {
+      newMessages.push({ role: "tool", tool_call_id: blocked.id, name: blocked.function.name, content: truncationWarningFor(blocked) });
+      if (showConsole) this.io.observation(`[withheld — response truncated by token limit] ${blocked.function.name}`, true);
+    }
+
+    for (const call of safeCalls) {
       if (showConsole) {
         const parsed = safeParse(call.function.arguments);
         this.io.action(call.function.name, parsed);

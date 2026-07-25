@@ -101,6 +101,7 @@ export class DeepSeekClient implements LlmClient {
     const data = (await res.json()) as {
       choices: {
         message: { content: string | null; tool_calls?: LlmResponse["toolCalls"]; reasoning_content?: string };
+        finish_reason?: string;
       }[];
       usage?: {
         prompt_tokens: number;
@@ -116,6 +117,7 @@ export class DeepSeekClient implements LlmClient {
       content: message?.content ?? "",
       toolCalls: message?.tool_calls ?? [],
       reasoningContent: message?.reasoning_content,
+      finishReason: data.choices?.[0]?.finish_reason,
       usage: data.usage
         ? {
             promptTokens: data.usage.prompt_tokens,
@@ -178,6 +180,7 @@ export class DeepSeekClient implements LlmClient {
     const data = (await res.json()) as {
       content: AnthropicContentBlock[];
       usage?: { input_tokens: number; output_tokens: number };
+      stop_reason?: string;
     };
     await this.telemetry?.logLlmCall(body, data);
 
@@ -191,6 +194,7 @@ export class DeepSeekClient implements LlmClient {
         type: "function" as const,
         function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) },
       })),
+      finishReason: data.stop_reason === "max_tokens" ? "length" : data.stop_reason,
       usage: data.usage
         ? {
             promptTokens: data.usage.input_tokens,
