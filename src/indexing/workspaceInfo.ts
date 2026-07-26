@@ -52,15 +52,23 @@ function renderTree(files: string[]): { tree: string; truncated: boolean } {
   const truncated = sorted.length > MAX_TREE_ENTRIES;
   const shown = sorted.slice(0, MAX_TREE_ENTRIES);
 
-  // Simple indent-by-depth rendering rather than a full nested-object tree — cheaper to build
-  // and just as readable for an LLM consuming it as plain text.
+  // Renders the directory path along with the file name to preserve full context
   const lines = shown.map((f) => {
-    const depth = f.split("/").length - 1;
-    const name = f.split("/").pop();
-    return `${"  ".repeat(depth)}${name}`;
+    const parts = f.split("/");
+    const depth = parts.length - 1;
+    const fileName = parts.pop();
+    const dirPath = parts.join("/");
+
+    const prefix = "  ".repeat(depth);
+    const pathContext = dirPath ? ` (${dirPath}/)` : "";
+
+    return `${prefix}${fileName}${pathContext}`;
   });
+
   if (truncated) {
-    lines.push(`  … ${sorted.length - MAX_TREE_ENTRIES} more file(s) not shown (${sorted.length} total) — use glob_tool for a targeted listing.`);
+    lines.push(
+      `  … ${sorted.length - MAX_TREE_ENTRIES} more file(s) not shown (${sorted.length} total) — use glob_tool for a targeted listing.`
+    );
   }
   return { tree: lines.join("\n"), truncated };
 }
@@ -216,7 +224,7 @@ export function summarizeWorkspaceInfo(info: WorkspaceInfo): string {
 
   const pkgLine = info.packageInfo
     ? `${info.packageInfo.name ?? "(unnamed)"}@${info.packageInfo.version ?? "?"}` +
-      (info.packageInfo.scripts?.length ? ` — scripts: ${info.packageInfo.scripts.join(", ")}` : "")
+    (info.packageInfo.scripts?.length ? ` — scripts: ${info.packageInfo.scripts.join(", ")}` : "")
     : "no package.json";
 
   return (
