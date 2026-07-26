@@ -4,33 +4,33 @@ import { resolveConfigPath } from "../config/loadConfig.js";
 import { describeShell } from "../tools/runCommandTool.js";
 
 const PROTOCOL_PATH = path.join("xcoder.md");
-const LESSONS_PATH = path.join("tasks", "lessons.md");
+const LESSONS_PATH = path.join("lessons.md");
 const TODO_PATH = path.join("tasks", "todo.md");
 
 /** Reads agent/xcoder.md if present; this is the engineering protocol from the workflow doc. */
 function loadProtocol(cwd: string = resolveConfigPath()): string | undefined {
   const p = path.join(cwd, PROTOCOL_PATH);
   if (fs.existsSync(p)) {
-      console.log(`Protocol loaded ...`)
+    console.log(`Protocol loaded ...`)
   } else {
-      console.log(`Protocol not found! ...${p}`)
+    console.log(`Protocol not found! ...${p}`)
   }
-  return fs.existsSync(p) ? fs.readFileSync(p, "utf-8").trim(): undefined;
+  return fs.existsSync(p) ? fs.readFileSync(p, "utf-8").trim() : undefined;
 }
 
 /** Reads tasks/lessons.md if present — patterns captured from prior user corrections. */
-export function loadLessons(cwd: string = process.cwd()): string | undefined {
+export function loadLessons(cwd: string = resolveConfigPath()): string | undefined {
   const p = path.join(cwd, LESSONS_PATH);
   if (fs.existsSync(p)) {
-      console.log(`Lessons loaded ...`)
+    console.log(`Lessons loaded ...`)
   } else {
-      console.log(`Lessons not found! ...${p}`)
+    console.log(`Lessons not found! ...${p}`)
   }
   return fs.existsSync(p) ? fs.readFileSync(p, "utf-8").trim() : undefined;
 }
 
 /** Appends a timestamped lesson entry, per "Self-Improvement Loop" in the protocol. */
-export function recordLesson(lesson: string, cwd: string = process.cwd()): void {
+export function recordLesson(lesson: string, cwd: string = resolveConfigPath()): void {
   const p = path.join(cwd, LESSONS_PATH);
   fs.mkdirSync(path.dirname(p), { recursive: true });
   const entry = `\n## ${new Date().toISOString()}\n${lesson}\n`;
@@ -54,7 +54,7 @@ export function appendTodoReview(cwd: string, review: string): void {
  */
 export function buildProtocolPrompt(cwd: string = process.cwd()): string {
   const protocol = loadProtocol(resolveConfigPath());
-  const lessons = loadLessons(cwd);
+  const lessons = loadLessons(resolveConfigPath());
 
   let out = `<runtime_environment>\nCommands from run_command_tool execute on this host via ${describeShell()}\n</runtime_environment>\n\n`;
   if (protocol) {
