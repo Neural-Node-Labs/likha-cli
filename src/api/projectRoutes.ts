@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
-import archiver from "archiver";
+import { createRequire } from "node:module";
 import multer from "multer";
 import {
   listProjects,
@@ -13,6 +13,10 @@ import {
 } from "./projectStore.js";
 import { EXCLUDED, WORKSPACE_DIR_NAME } from "../core/workspaceManager.js";
 import { ApiResponse } from "./types.js";
+
+
+const require = createRequire(import.meta.url);
+const archiver = require("archiver");
 
 /** Resolves the folder a project's file browser/download/delete operations act on: the
  *  isolated workspace-agent copy if one has been created by a run, otherwise the raw project
@@ -210,9 +214,7 @@ export function registerProjectRoutes(router: Router): void {
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
     const archive = archiver("zip", { zlib: { level: 9 } });
-    archive.on("error", (err) => {
-      // Headers are likely already sent by this point; end the response rather than trying to
-      // send a JSON error body over a stream that's already started.
+    archive.on("error", (err: Error) => {
       console.error("[xcoder API] zip stream error:", err);
       res.end();
     });
