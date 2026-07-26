@@ -15,6 +15,8 @@ import { dispatchToolCall } from "../../tools/toolDispatcher.js";
 import { SkillRegistry } from "../skillRegistry.js";
 import { buildProtocolPrompt } from "../protocol.js";
 import { validateGoal, buildObservationTranscript } from "../goalValidator.js";
+import { compactStaleFileReads } from "../contextCompaction.js";
+import { checkForTruncatedToolCalls, truncationWarningFor } from "../truncationGuard.js";
 import { createHealthState, scoreStep, rollingHealth, HealthState } from "../stepScorer.js";
 import { AgentIO } from "../io/AgentIO.js";
 import { AutoIO } from "../io/AutoIO.js";
@@ -351,10 +353,13 @@ export class SwarmEngine implements IReactEngine, IReactEngineV2 {
       }
 
       // ── Orchestrator LLM call with error handling ──
+      const showConsole = this.opts.consoleThoughts !== false;
+      if (showConsole) this.io.spinnerStart("Thinking...");
       let response;
       try {
         response = await this.llm.complete(messages, { tools: swarmTools });
       } catch (err) {
+        if (showConsole) this.io.spinnerStop();
         await this.telemetry.logError(err, `SwarmEngine orchestrator LLM call failed at iteration ${this.iterationCount}`);
         this.transition({
           phase: "error",
@@ -365,42 +370,75 @@ export class SwarmEngine implements IReactEngine, IReactEngineV2 {
         this.lastMessages = messages;
         return `Swarm execution failed: orchestrator LLM error at iteration ${this.iterationCount}. ${err instanceof Error ? err.message : String(err)}`;
       }
+      if (showConsole) this.io.spinnerStop();
 
       this.addUsage(response.usage);
 
-      messages.push({ role: "assistant", content: response.content, tool_calls: response.toolCalls });
+      messages.push({
+        role: "assistant",
+        content: response.content,
+        tool_calls: response.toolCalls,
+        reasoning_content: response.reasoningContent,
+      });
       finalContent = response.content || finalContent;
 
-      if (this.opts.consoleThoughts !== false && response.content) {
-        this.io.thought(response.content);
+      if (showConsole) {
+        if (response.toolCalls.length > 0) {
+          this.io.thought(response.reasoningContent ?? response.content);
+        } else if (response.reasoningContent) {
+          this.io.thought(response.reasoningContent);
+        }
+        this.io.usage(response.usage, this.cumulativeUsage.totalTokens);
       }
 
       // Handle Orchestrator Tool Calls
-      if (response.toolCalls && response.toolCalls.length > 0) {
-        for (const toolCall of response.toolCalls) {
+      const { safeCalls, blockedCalls } = checkForTruncatedToolCalls(response);
+      for (const blocked of blockedCalls) {
+        messages.push({ role: "tool", tool_call_id: blocked.id, name: blocked.function.name, content: truncationWarningFor(blocked) });
+        if (showConsole) this.io.observation(`[withheld — response truncated by token limit] ${blocked.function.name}`, true);
+      }
+
+      if (safeCalls.length > 0) {
+        for (const toolCall of safeCalls) {
+          if (showConsole) {
+            this.io.action(toolCall.function.name, safeParseJson(toolCall.function.arguments));
+          }
+
           const resultStr = await this.handleSwarmToolCall(toolCall);
 
           // Score the step for health tracking
-          if (selfHealingOn) {
-            const isError = resultStr.startsWith("Error:");
-            const { score } = scoreStep(this.health, {
-              tool: toolCall.function.name,
-              args: toolCall.function.arguments,
-              observation: resultStr,
-              isError,
-            });
-            if (this.opts.consoleThoughts !== false) {
-              this.io.observation(resultStr, isError, undefined, score);
-            }
+          const isError = resultStr.startsWith("Error:");
+          const score = selfHealingOn
+            ? scoreStep(this.health, {
+                tool: toolCall.function.name,
+                args: toolCall.function.arguments,
+                observation: resultStr,
+                isError,
+              }).score
+            : undefined;
+          if (showConsole) {
+            this.io.observation(resultStr, isError, undefined, score);
           }
 
           messages.push({
             role: "tool",
             tool_call_id: toolCall.id,
+            name: toolCall.function.name,
             content: resultStr,
           });
+
+          // Context compaction (lean-token mode, default ON): collapse stale full-file
+          // read_tool/write_edit_tool history for the coordinator's OWN tool calls — it has
+          // direct access to the full tool set (see getSwarmTools()), not just swarm-specific
+          // ones, so it's just as susceptible to unbounded context growth as any other engine.
+          if (!this.opts.fullContextToken && (toolCall.function.name === "read_tool" || toolCall.function.name === "write_edit_tool")) {
+            const args = safeParseFilePath(toolCall.function.arguments);
+            if (args?.filePath) {
+              compactStaleFileReads(messages, args.filePath, toolCall.id);
+            }
+          }
         }
-      } else {
+      } else if (response.toolCalls.length === 0) {
         // If the orchestrator stopped making tool calls, evaluate status
         const allDone = this.wbsTasks.every((t) => t.status === "completed" || t.status === "failed" || t.status === "skipped");
         if (allDone) {
@@ -1069,5 +1107,13 @@ function safeParseJson(json: string): unknown {
     return JSON.parse(json);
   } catch {
     return json;
+  }
+}
+
+function safeParseFilePath(json: string): { filePath?: string } | undefined {
+  try {
+    return JSON.parse(json);
+  } catch {
+    return undefined;
   }
 }

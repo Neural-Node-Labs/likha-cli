@@ -3,6 +3,7 @@ import { AgentIO } from "../io/AgentIO.js";
 import { IReactEngine } from "./IReactEngine.js";
 import { ReActOrchestrator, OrchestratorOptions } from "../orchestrator.js";
 import { LeanEngine, LeanEngineOptions } from "./LeanEngine.js";
+import { SimpleReactEngine, SimpleReactEngineOptions } from "./SimpleReactEngine.js";
 import { LangGraphEngine, LangGraphEngineOptions } from "./LangGraphEngine.js";
 import { SwarmEngine, SwarmEngineOptions } from "./SwarmEngine.js";
 
@@ -58,6 +59,22 @@ registerEngine("lean", ({ llm, telemetry, io, options }) => {
     io,
   };
   return new LeanEngine(llm, telemetry, leanOpts);
+});
+
+// SimpleReactEngine: one level simpler than "lean" — the bare ReAct loop with the same
+// console output (thought/action/observation/usage) as ReActOrchestrator/LeanEngine, but no
+// Plan Mode, no Phase Planning, no goal-validation retry loop, and no self-healing nudges.
+// Whatever the model says when it stops calling tools IS the final answer. Context compaction
+// and the truncation guard are still applied (those are correctness/cost fixes, not "planning").
+registerEngine("simple", ({ llm, telemetry, io, options }) => {
+  const simpleOpts: SimpleReactEngineOptions = {
+    maxIterations: options?.maxIterations,
+    cwd: options?.cwd,
+    consoleThoughts: options?.consoleThoughts,
+    fullContextToken: options?.fullContextToken,
+    io,
+  };
+  return new SimpleReactEngine(llm, telemetry, simpleOpts);
 });
 
 // The SwarmEngine: an orchestrating ReAct engine that distributes tasks to swarm agents
