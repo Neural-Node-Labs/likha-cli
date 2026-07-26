@@ -1,7 +1,7 @@
 {
   "name": "xcoder",
   "version": "0.2.0",
-  "description": "xcoder \u2014 a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.",
+  "description": "xcoder — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@langchain/langgraph": "^1.4.8",
-    "archiver": "^7.0.1",
+    "archiver": "^8.0.0",
     "better-sqlite3": "^12.11.1",
     "cheerio": "^1.2.0",
     "commander": "^12.1.0",
