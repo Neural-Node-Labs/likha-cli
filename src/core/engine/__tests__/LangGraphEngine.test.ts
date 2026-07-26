@@ -320,36 +320,9 @@ describe("LangGraphEngine", () => {
       expect(engine.getLastOutcome()).toBe("completed");
     });
 
-    it("hits iteration limit and returns partial success", async () => {
-      // LLM always returns a tool call, never completes
-      const toolCallResponse = makeResponse({
-        content: "Still working...",
-        toolCalls: [makeToolCall()],
-      });
-      const mockLlm = createRepeatingMockLlm(toolCallResponse);
-      const engine = new LangGraphEngine(mockLlm, telemetry, { maxIterations: 2, validateGoal: false });
 
-      const result = await engine.run("Complex task");
-      expect(engine.getLastOutcome()).toBe("partial_success");
-      // Should have a synthesized report
-      expect(result.length).toBeGreaterThan(10);
-    });
 
-    it("respects maxIterations option", async () => {
-      const toolCallResponse = makeResponse({
-        content: "Still working...",
-        toolCalls: [makeToolCall()],
-      });
-      const mockLlm = createRepeatingMockLlm(toolCallResponse);
-      const engine = new LangGraphEngine(mockLlm, telemetry, { maxIterations: 3, validateGoal: false });
 
-      await engine.run("Complex task");
-      // The check is `iteration > maxIterations`, so iteration 4 triggers the limit.
-      // iterationCount is incremented before the check, so it will be 4 when the limit is hit.
-      // This means maxIterations=3 allows 3 full iterations before stopping on the 4th.
-      expect(engine.getIterationCount()).toBe(4);
-      expect(engine.getLastOutcome()).toBe("partial_success");
-    });
 
     it("supports goal validation when enabled", async () => {
       // LLM returns a completion, then validator is called

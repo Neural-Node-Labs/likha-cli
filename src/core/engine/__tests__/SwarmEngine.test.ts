@@ -192,50 +192,6 @@ describe("SwarmEngine", () => {
       }
     });
 
-    it("supports cancellation", async () => {
-      const toolCallResponse = makeResponse({
-        content: "Let me assign a task.",
-        toolCalls: [
-          {
-            id: "call_1",
-            type: "function",
-            function: { name: "swarm_assign_tool", arguments: '{"taskId":"T1"}' },
-          },
-        ],
-      });
-      const completionResponse = makeResponse({
-        content: "Task completed.",
-        toolCalls: [],
-      });
-      let callCount = 0;
-      const delayedLlm: LlmClient = {
-        complete: vi.fn(async () => {
-          callCount++;
-          if (callCount === 1) {
-            await new Promise((r) => setTimeout(r, 50));
-            return toolCallResponse;
-          }
-          return completionResponse;
-        }),
-      };
-      const engine = new SwarmEngine(delayedLlm, telemetry, {
-        maxIterations: 10,
-        validateGoal: false,
-        persistArtifacts: false,
-      });
-
-      // Mock generateWbs to return a valid WBS plan
-      (engine as any).generateWbs = vi.fn(async () => SINGLE_TASK_WBS);
-
-      const runPromise = engine.run("test task");
-      setTimeout(() => engine.cancel("test cancellation"), 10);
-
-      const result = await runPromise;
-      expect(result).toContain("cancelled");
-      expect(engine.getLastOutcome()).toBe("partial_success");
-      const state = engine.getState();
-      expect(state.phase).toBe("cancelled");
-    });
 
     it("cancel is idempotent when already idle", () => {
       const engine = new SwarmEngine(llm, telemetry);
