@@ -18,10 +18,23 @@ import { startApiServer } from "../api/server.js";
 import { dockerComposeUp } from "../tools/dockerComposeDeployTool.js";
 import { deployWorkspaceViaSsh } from "../tools/dockerDeploySshTool.js";
 import { initializeDatabase } from "../db/initialize.js";
+import { installProcessCrashHandler } from "../core/processCrashHandler.js";
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import os from "node:os";
+
+// ─── Install top-level process crash handler ──────────────────────────────────────
+// This MUST be the first thing that runs — before any other initialization — so it
+// catches crashes from ALL code paths (engine.run(), runPhasePlanning(), runSubagent(),
+// chatLoop(), deploy/audit/diagnose paths, etc.).
+//
+// The handler:
+// 1. Logs the error with full stack trace to stderr
+// 2. Generates a crash report at reports/crash-<timestamp>.md
+// 3. Attempts graceful shutdown
+// 4. Exits with code 1 — NO restart/retry logic (no infinite restart loops)
+installProcessCrashHandler(process.cwd());
 
 const program = new Command();
 program.name("xcoder").description("xcoder — ReAct CLI agent with hot-pluggable role skills").version("0.1.0");
