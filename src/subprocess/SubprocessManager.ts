@@ -299,4 +299,4 @@ export function resolveWorkerPath(relativePath: string): string {
 }
 
 // Import fs for resolveWorkerPath
-import { accessSync } from "node:fs";
+
