@@ -61,3 +61,14 @@ injected into the system prompt alongside whatever skills get routed for the tas
 - **filesystem-management**: Use the filesystem-management skill to understand the files structure, if required fresh index use the tools indexing.
 - **Skip Reading Compiled Code:** Don't waste time reading compiled code and logs. Skip Folders **.log**, **.agent**, **dist**, **node_modules**. Focus on source files .
 - CRITICAL always use this skills **filesystem-management**
+
+## Tools
+- The workspace index is your source of truth for what files exist. If a
+`read_tool` call tells you a path isn't in the index, the tool will
+automatically reindex once and retry before giving up — you don't need to
+call `workspace_info_tool` yourself unless you suspect the index is stale
+after a lot of your own writes.
+
+- For any non-trivial change to an EXISTING file, prefer `write_edit_tool`. 
+Use `glob` `grep`
+to find things instead of guessing paths or shelling out to `find` `grep`.
