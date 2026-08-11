@@ -3,8 +3,8 @@
 ## Overview
 
 `LeanEngine` is a focused, self-contained ReAct loop engine that implements both the
-[`IReactEngine`](../src/core/engine/IReactEngine.ts) and
-[`IReactEngineV2`](../src/core/engine/IReactEngine.ts) interfaces. It provides the core
+[`IReactEngine`](../../src/core/engine/IReactEngine.ts) and
+[`IReactEngineV2`](../../src/core/engine/IReactEngine.ts) interfaces. It provides the core
 ReAct (Reasoning + Acting) loop — Thought → Action → Observation — without the additional
 complexity of plan mode, phase planning, or subagent delegation that the full
 `ReActOrchestrator` includes.

@@ -6,12 +6,12 @@ This directory contains detailed documentation for the xcoder orchestration engi
 
 | Document | Description |
 |---|---|
-| [swarm-engine.md](./swarm-engine.md) | SwarmEngine: validation rules, healing features, API reference, and usage examples |
+| [swarm-engine.md](swarm-engine.md) | SwarmEngine: validation rules, healing features, API reference, and usage examples |
 
 ## Related Documents
 
-- [README.md](../README.md) — Quick start, CLI reference, configuration
-- [blueprint.md](../blueprint.md) — Architecture blueprint, system design, core abstractions
+- [README.md](../../README.md) — Quick start, CLI reference, configuration
+- [blueprint.md](../../blueprint.md) — Architecture blueprint, system design, core abstractions
 
 ## Engine Overview
 

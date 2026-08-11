@@ -19,6 +19,7 @@
     "dev": "ts-node --esm src/cli/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "package:build": "node scripts/cross-platform-shell.mjs build -- --compile",
     "package:validate": "node scripts/cross-platform-shell.mjs build -- --validate",
     "package:tarball": "node scripts/cross-platform-shell.mjs build -- --tarball",

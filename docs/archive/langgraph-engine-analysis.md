@@ -1,7 +1,7 @@
 # LangGraphEngine Analysis: Current Implementation vs. @langchain/langgraph API
 
 > **Phase 2** of the engine architecture audit.  
-> Previous: [SwarmEngine Validation Report](./swarm-engine-validation-report.md)
+> Previous: [SwarmEngine Validation Report](swarm-engine-validation-report.md)
 
 ---
 
