@@ -824,12 +824,25 @@ registerEngine("my-engine", ({ llm, telemetry, io, options }) => {
 
 ## Project Structure
 
+
+
 ```
-xcoder/
-├── agent/                    # Skill definitions and protocol
-│   ├── xcoder.md             # Engineering protocol
-│   └── skills/               # 30+ skill definitions
-├── src/
-│   ├── cli/                  # CLI entry point
-│   ├── api/                  # Express API server
-│   ├── core/
+src/
+  core/          ReAct engine, engine/IO abstractions, scoring, skill registry, protocol/plan mode
+  cli/           CLI entrypoint, CliIO (terminal presentation)
+  api/           Express server, routes, DB-backed stores (task history / phase reports / WBS)
+  db/            Database connection, migrations, init
+  tools/         Tool schemas + dispatcher
+  llm/           LLM client(s) — DeepSeek primary, Anthropic fallback
+  telemetry/     FileTelemetry (always-on) + Postgres telemetry (API-only)
+  config/        Env/config loading
+  indexing/      Workspace indexing for .agent/index/
+  remote/        Remote SSH deploy support
+agent/
+  skills/        SKILL.md files — see Skill System
+  config/        LLM provider config (llm.yaml)
+ui/
+  src/           React app (pages, components/ui primitives, context, API client)
+tasks/           Runtime output: todo.md, wbs.md, lessons.md, phase reports (git-ignored in practice)
+.log/            Runtime output: FileTelemetry logs (git-ignored in practice)
+```
