@@ -6,5 +6,6 @@
 /tmp/
 /.log/
 /tasks/
-/.agent/
+
 /clean/
+/.ronin/
