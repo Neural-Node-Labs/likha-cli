@@ -30,3 +30,8 @@ npm run xcoder:build
 npm link
 xcoder --ui
 ```
+# Run a task through the CLI
+
+``
+xcoder --task "List all TypeScript files in src/" --auto
+``
