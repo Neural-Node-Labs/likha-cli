@@ -1,7 +1,7 @@
-<!-- ronin:version 1 | ronin:task task-eedb5e | ronin:updated 2026-08-11T16:15:45.463Z | ronin:subtask code-st-7639c0 -->
+<!-- ronin:version 2 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:17:47.561Z | ronin:subtask code-st-82c66c -->
 # xcoder — Pangkalahatang-ideya
 
-Ang **xcoder** ay isang ReAct CLI agent na nakasulat sa TypeScript para sa Node.js. Ginagamit nito ang ReAct (Reasoning + Acting) loop kasama ang mga hot-pluggable na role skills, at ang DeepSeek ay ang default na LLM provider nito. Ito ang entry point sa dokumentasyong Tagalog.
+Ang **xcoder** ay isang ReAct CLI agent na nakasulat sa TypeScript para sa Node.js. Ginagamit nito ang ReAct (Reasoning + Acting) loop kasama ang mga hot-pluggable na role skills, at ang DeepSeek ay ang default na LLM provider nito. Ang LLM backend ay config-driven: ang DeepSeek ang default, at sinumang OpenAI-compatible provider o Anthropic ay mapipili sa pamamagitan ng `agent/config/llm.yaml` kasama ang isang API key environment variable — **walang code changes**. Ito ang entry point sa dokumentasyong Tagalog.
 
 ## Pangkalahatang-ideya
 

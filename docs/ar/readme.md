@@ -1,7 +1,7 @@
-<!-- ronin:version 1 | ronin:task task-5e8fe0 | ronin:updated 2026-08-11T16:39:13.082Z | ronin:subtask code-st-be6a3a -->
+<!-- ronin:version 2 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:17:41.238Z | ronin:subtask code-st-82c66c -->
 # xcoder — نظرة عامة
 
-**xcoder** هو وكيل سطر أوامر (CLI agent) يعمل بنمط ReAct، مكتوب بلغة TypeScript ويعمل على Node.js، ويتضمّن مهارات أدوار قابلة للربط السريع (hot-pluggable role skills)، ويستخدم DeepSeek كمزوّد LLM افتراضي. هذا المستند هو مدخل مجموعة التوثيق باللغة العربية.
+**xcoder** هو وكيل سطر أوامر (CLI agent) يعمل بنمط ReAct، مكتوب بلغة TypeScript ويعمل على Node.js، ويتضمّن مهارات أدوار قابلة للربط السريع (hot-pluggable role skills)، ويستخدم DeepSeek كمزوّد LLM افتراضي. خلفية الـ LLM مدفوعة بالملفات: DeepSeek هو المزوّد الافتراضي، ويمكن اختيار أي مزوّد متوافق مع OpenAI أو Anthropic عبر `agent/config/llm.yaml` مع متغير بيئة واحد للمفتاح — **دون تغيير أي كود**. هذا المستند هو مدخل مجموعة التوثيق باللغة العربية.
 
 ## نظرة عامة
 

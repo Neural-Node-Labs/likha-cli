@@ -1,4 +1,4 @@
-<!-- ronin:version 1 | ronin:task task-ae5e2e | ronin:updated 2026-08-11T16:58:36.682Z | ronin:subtask code-st-d23750 -->
+<!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:51.147Z | ronin:subtask code-st-82c66c -->
 # xcoder — Instalación
 
 Cómo instalar xcoder, configurar su entorno, inicializar la base de datos y establecer un flujo de trabajo de desarrollo.
@@ -37,10 +37,12 @@ Se admiten las siguientes variables de entorno:
 
 | Variable | Propósito |
 |---|---|
-| `DEEPSEEK_API_KEY` | Clave API de DeepSeek (requerida para ejecuciones LLM reales) |
-| `DEEPSEEK_BASE_URL` | URL base de la API de DeepSeek |
-| `DEEPSEEK_MODEL` | Nombre del modelo (predeterminado: `deepseek-chat`) |
-| `ANTHROPIC_API_KEY` | Proveedor de respaldo opcional, usado si DeepSeek no está disponible/definido |
+| `DEEPSEEK_API_KEY` | Clave API de DeepSeek (proveedor predeterminado — requerida para ejecuciones predeterminadas) |
+| `OPENAI_API_KEY` | Clave API de OpenAI (ver `provider: openai` abajo) |
+| `OPENROUTER_API_KEY` | Clave API de OpenRouter (ver `provider: openrouter` abajo) |
+| `GROQ_API_KEY` | Clave API de Groq (ver `provider: groq` abajo) |
+| `OLLAMA_API_KEY` | Clave API de Ollama — opcional para uso local; puedes elegir cualquier nombre |
+| `ANTHROPIC_API_KEY` | Clave API de Anthropic — respaldo, o cambio mediante `provider: anthropic` en `agent/config/llm.yaml` |
 | `GITHUB_TOKEN` | Token para autenticación HTTPS de `github_tool` (clone/fetch/pull/push); se pasa solo como encabezado de autenticación en memoria |
 | `XCODER_API_KEY` | Autenticación por token Bearer del servidor API; si no está definida, la API se ejecuta sin autenticación |
 | `XCODER_API_PORT` | Puerto del servidor API (predeterminado: 3001) |
@@ -69,8 +71,11 @@ Una plantilla `.env` más completa:
 
 ```env
 DEEPSEEK_API_KEY=sk-your-key-here
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
+# OPENAI_API_KEY=sk-...
+# OPENROUTER_API_KEY=sk-...
+# GROQ_API_KEY=sk-...
+# OLLAMA_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-ant-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
@@ -81,6 +86,47 @@ DEEPSEEK_MODEL=deepseek-chat
 # XCODER_SSH_USER=fleet-user
 # XCODER_SSH_PASSWORD=fleet-password
 ```
+
+### Proveedores LLM
+
+El backend LLM de xcoder se controla por configuración: **DeepSeek es el proveedor predeterminado**, pero cualquier proveedor compatible con OpenAI (OpenAI, OpenRouter, Groq, Ollama, un proxy de empresa, …) y Anthropic se puede seleccionar editando `agent/config/llm.yaml` — **sin cambios de código** y sin una bandera CLI para cambiar de proveedor (el cambio de proveedor se realiza únicamente mediante el archivo de configuración).
+
+Las claves nunca se escriben en el YAML: el campo `api_key_env` nombra la variable de entorno que contiene la clave. Define exactamente esa variable (en tu entorno o en un archivo `.env`) y, tras editar `agent/config/llm.yaml`, reinicia cualquier proceso xcoder en ejecución.
+
+**Cambiar a un proveedor compatible con OpenAI (ejemplo: OpenAI):**
+
+```yaml
+provider: openai
+base_url: https://api.openai.com/v1
+endpoint: /chat/completions
+model: gpt-5
+api_key_env: OPENAI_API_KEY
+```
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+**Cambiar a Anthropic (ignora `base_url` y `endpoint`):**
+
+```yaml
+provider: anthropic
+model: claude-sonnet-4-5
+api_key_env: ANTHROPIC_API_KEY
+```
+
+```env
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+```
+
+Reglas de enrutamiento:
+
+1. Un `base_url` explícito siempre gana frente al registro integrado.
+2. Si se omite `base_url`, se usa la URL del registro para los proveedores conocidos (`deepseek`, `openai`, `openrouter`, `groq`, `ollama`).
+3. `endpoint` por defecto es `/chat/completions` cuando se omite.
+4. `anthropic` ignora `base_url` y `endpoint`.
+
+> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` son variables obsoletas y **no se leen**.
 
 ## Inicialización de la base de datos
 

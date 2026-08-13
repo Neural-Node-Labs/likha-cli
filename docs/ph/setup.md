@@ -1,4 +1,4 @@
-<!-- ronin:version 1 | ronin:task task-eedb5e | ronin:updated 2026-08-11T16:15:57.035Z | ronin:subtask code-st-7639c0 -->
+<!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:47.078Z | ronin:subtask code-st-82c66c -->
 # xcoder — Pag-setup
 
 Gabay ito sa pag-install ng xcoder, pag-configure ng environment nito, pag-initialize ng database, at pag-setup ng development workflow.
@@ -37,10 +37,12 @@ Ang mga sumusunod na environment variables ay suportado:
 
 | Variable | Layunin |
 |---|---|
-| `DEEPSEEK_API_KEY` | DeepSeek API key (kinakailangan para sa real LLM runs) |
-| `DEEPSEEK_BASE_URL` | DeepSeek API base URL |
-| `DEEPSEEK_MODEL` | Pangalan ng model (default: `deepseek-chat`) |
-| `ANTHROPIC_API_KEY` | Opsyonal na fallback provider, ginagamit kung ang DeepSeek ay hindi maabot/hindi naka-set |
+| `DEEPSEEK_API_KEY` | DeepSeek API key (default provider — kinakailangan para sa default runs) |
+| `OPENAI_API_KEY` | OpenAI API key (tingnan ang `provider: openai` sa ibaba) |
+| `OPENROUTER_API_KEY` | OpenRouter API key (tingnan ang `provider: openrouter` sa ibaba) |
+| `GROQ_API_KEY` | Groq API key (tingnan ang `provider: groq` sa ibaba) |
+| `OLLAMA_API_KEY` | Ollama API key — opsyonal para sa lokal; maaaring mag-set ng anumang pangalan |
+| `ANTHROPIC_API_KEY` | Anthropic API key — fallback, o paglipat sa pamamagitan ng `provider: anthropic` sa `agent/config/llm.yaml` |
 | `GITHUB_TOKEN` | Token para sa `github_tool` HTTPS auth (clone/fetch/pull/push); ipinapasa lamang bilang in-memory auth header |
 | `XCODER_API_KEY` | API server bearer-token auth; kung hindi naka-set, ang API ay tatakbo nang walang authentication |
 | `XCODER_API_PORT` | Port ng API server (default: 3001) |
@@ -69,8 +71,11 @@ Isang mas kumpletong `.env` template:
 
 ```env
 DEEPSEEK_API_KEY=sk-your-key-here
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
+# OPENAI_API_KEY=sk-...
+# OPENROUTER_API_KEY=sk-...
+# GROQ_API_KEY=sk-...
+# OLLAMA_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-ant-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
@@ -81,6 +86,47 @@ DEEPSEEK_MODEL=deepseek-chat
 # XCODER_SSH_USER=fleet-user
 # XCODER_SSH_PASSWORD=fleet-password
 ```
+
+### LLM Providers
+
+Ang LLM backend ng xcoder ay config-driven: **ang DeepSeek ang default provider**, ngunit sinumang OpenAI-compatible provider (OpenAI, OpenRouter, Groq, Ollama, company proxy, …) at ang Anthropic ay maaaring piliin sa pamamagitan ng pag-edit ng `agent/config/llm.yaml` — **walang code changes** at walang CLI flag para sa paglipat ng provider (ang paglipat ng provider ay sa pamamagitan lamang ng config file).
+
+Ang mga key ay hindi kailanman inilalagay sa YAML: ang field na `api_key_env` ay nagpapangalan ng environment variable na may hawak ng key. I-set nang eksakto ang variable na iyon (sa iyong environment o sa `.env` file), at pagkatapos i-edit ang `agent/config/llm.yaml`, i-restart ang anumang tumatakbong xcoder process.
+
+**Paglipat sa isang OpenAI-compatible provider (halimbawa: OpenAI):**
+
+```yaml
+provider: openai
+base_url: https://api.openai.com/v1
+endpoint: /chat/completions
+model: gpt-5
+api_key_env: OPENAI_API_KEY
+```
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+**Paglipat sa Anthropic (hindi nito pinapansin ang `base_url` at `endpoint`):**
+
+```yaml
+provider: anthropic
+model: claude-sonnet-4-5
+api_key_env: ANTHROPIC_API_KEY
+```
+
+```env
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+```
+
+Routing rules:
+
+1. Ang explicit na `base_url` ay laging panalo laban sa built-in registry.
+2. Kung hindi naka-set ang `base_url`, ginagamit ang registry URL para sa mga kilalang provider (`deepseek`, `openai`, `openrouter`, `groq`, `ollama`).
+3. Ang `endpoint` default ay `/chat/completions` kapag hindi naka-set.
+4. Hindi pinapansin ng `anthropic` ang `base_url` at `endpoint`.
+
+> Ang `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` ay legacy variables at **hindi binabasa** ng xcoder.
 
 ## Initialization ng Database
 

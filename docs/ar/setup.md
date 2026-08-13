@@ -1,4 +1,4 @@
-<!-- ronin:version 1 | ronin:task task-5e8fe0 | ronin:updated 2026-08-11T16:39:25.258Z | ronin:subtask code-st-be6a3a -->
+<!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:40.042Z | ronin:subtask code-st-82c66c -->
 # xcoder — التثبيت والإعداد
 
 يوضّح هذا المستند كيفية تثبيت xcoder، وضبط متغيرات البيئة، وتهيئة قاعدة البيانات، وإعداد سير عمل التطوير.
@@ -37,10 +37,12 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 | المتغير | الغرض |
 |---|---|
-| `DEEPSEEK_API_KEY` | مفتاح DeepSeek API (مطلوب لتشغيل LLM حقيقي) |
-| `DEEPSEEK_BASE_URL` | عنوان أساس URL لـ DeepSeek API |
-| `DEEPSEEK_MODEL` | اسم الطراز (الافتراضي: `deepseek-chat`) |
-| `ANTHROPIC_API_KEY` | مزوّد احتياطي اختياري، يُستخدم إذا كان DeepSeek غير متاح/غير مضبوط |
+| `DEEPSEEK_API_KEY` | مفتاح DeepSeek API (المزوّد الافتراضي — مطلوب للتشغيل الافتراضي) |
+| `OPENAI_API_KEY` | مفتاح OpenAI API (انظر `provider: openai` أدناه) |
+| `OPENROUTER_API_KEY` | مفتاح OpenRouter API (انظر `provider: openrouter` أدناه) |
+| `GROQ_API_KEY` | مفتاح Groq API (انظر `provider: groq` أدناه) |
+| `OLLAMA_API_KEY` | مفتاح Ollama API — اختياري للاستخدام المحلي |
+| `ANTHROPIC_API_KEY` | مفتاح Anthropic API — احتياطي أو التبديل عبر `provider: anthropic` في `agent/config/llm.yaml` |
 | `GITHUB_TOKEN` | رمز مصادقة HTTPS لـ `github_tool` (clone/fetch/pull/push)؛ يُمرَّر كترويسة مصادقة في الذاكرة فقط |
 | `XCODER_API_KEY` | مصادقة Bearer Token لخادم API؛ إذا لم يُضبط، يعمل API دون مصادقة |
 | `XCODER_API_PORT` | منفذ خادم API (الافتراضي: 3001) |
@@ -69,8 +71,11 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 ```env
 DEEPSEEK_API_KEY=sk-your-key-here
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
+# OPENAI_API_KEY=sk-...
+# OPENROUTER_API_KEY=sk-...
+# GROQ_API_KEY=sk-...
+# OLLAMA_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-ant-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
@@ -83,6 +88,47 @@ DEEPSEEK_MODEL=deepseek-chat
 ```
 
 ملاحظة: تعليق `.env.example` على `MAX_ITERATIONS` يشير إلى أن الافتراضي هو 10، بينما الافتراضي في الكود هو 20؛ يُقدَّم هذا المتغير هنا كخيار تجاوز دون تأكيد قيمة افتراضية محددة.
+
+### مزوّدات LLM
+
+يعمل خلفية xcoder للـ LLM بالإعداد من الملف: **DeepSeek هو المزوّد الافتراضي**، ويمكن اختيار أي مزوّد متوافق مع OpenAI (OpenAI أو OpenRouter أو Groq أو Ollama أو وكيل شركة …) أو Anthropic عبر تعديل `agent/config/llm.yaml` فقط — **دون تغيير أي كود**، ولا يوجد خيار CLI لتبديل المزوّد.
+
+المفاتيح لا تُكتب أبدًا داخل ملف YAML؛ الحقل `api_key_env` يحدد اسم متغير البيئة الذي يحمل المفتاح. اضبط المتغير المذكور بالضبط في بيئتك أو في ملف `.env`، ثم أعد تشغيل أي عملية xcoder قيد التشغيل بعد التعديل.
+
+**التبديل إلى مزوّد متوافق مع OpenAI (مثال OpenAI):**
+
+```yaml
+provider: openai
+base_url: https://api.openai.com/v1
+endpoint: /chat/completions
+model: gpt-5
+api_key_env: OPENAI_API_KEY
+```
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+**التبديل إلى Anthropic (يتجاهل `base_url` و`endpoint`):**
+
+```yaml
+provider: anthropic
+model: claude-sonnet-4-5
+api_key_env: ANTHROPIC_API_KEY
+```
+
+```env
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+```
+
+قواعد التوجيه:
+
+1. `base_url` الصريح يتفوق دائمًا على السجل المدمج.
+2. عند حذف `base_url`، يُستخدم سجل العناوين المدمج للمزوّدين المعروفين (`deepseek`، `openai`، `openrouter`، `groq`، `ollama`).
+3. `endpoint` الافتراضي هو `/chat/completions` عند حذفه.
+4. `base_url` و`endpoint` يُتجاهلان مع `anthropic`.
+
+> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` متغيرات قديمة و**لا يقرؤها** xcoder.
 
 ## تهيئة قاعدة البيانات
 
