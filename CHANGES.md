@@ -1,4 +1,15 @@
 <!-- ronin:version 2 | ronin:task task-bc7d1e | ronin:updated 2026-08-13T07:43:54.695Z | ronin:subtask document-st-2b7ee2 -->
+# Engine/CLI/docs consistency verification
+
+Cross-checked engine definitions, CLI options, and documentation for full alignment (8 engines:
+`react`, `lean`, `simple`, `swarm`, `langgraph`, `agentic`, `brain`, `procedure`).
+
+- Verified `EngineRegistry.ts` (`listEngines()`), the CLI `--help` output, and all 22 documentation
+  files (root `README.md` + `docs/{en,ar,ch,fr,ph,ru,sp}/`) list the same 8 engines in the same order.
+- Ran the engine test suite (116 tests passed) and `tsc --noEmit` (0 errors) — no regressions.
+- Fixed a documentation typo: `excoder --audit-react` → `xcoder --audit-react` in
+  `docs/{en,fr,ru,sp}/usage.md`.
+
 # Refactor summary
 
 Addresses the 4 points you gave, on top of `xcoder-production-review.md`.

@@ -41,7 +41,7 @@ xcoder is a CLI agent that follows the **ReAct** (Reasoning + Acting) pattern: i
 ### Key Features
 
 - **ReAct loop** with Search → Action → Validation phases
-- **Multiple engine implementations** — standard ReAct, LeanEngine, LangGraph, Swarm
+- **Multiple engine implementations** — standard ReAct, LeanEngine, SimpleReactEngine, LangGraph, Swarm, AgenticEngine, BrainEngine, ProcedureEngine
 - **Hot-pluggable skill system** — 30+ specialized skills (programmer, architect, devops, tester, etc.) loaded from `agent/skills/`
 - **Plan Mode** — generates a task plan before execution, with user approval
 - **Phase Planning** — divides complex tasks into sequential phases with isolated context
@@ -129,7 +129,7 @@ xcoder [task] [options]
 | `--single-phase` | Disable phase-based planning and run as a single ReAct loop; default: phase-planning is ON |
 | `--auto` | Fully autonomous mode — automatically answers 'yes' to ALL interactive prompts (plan approval, phase plan approval, iteration limit continuation, subagent continuation). The LLM drives end-to-end without any human intervention. Use this for CI/CD, automated testing, or any scenario where zero human input is desired. |
 | `--isolated-workspace` | Run tool operations against an isolated `./workspace-agent` copy instead of the live project files (see `src/core/workspaceManager.ts`); default: off |
-| `--engine <name>` | Orchestration engine to use (default: `react`). Registered engines: `react`, `lean`, `langgraph`, `swarm`. See `src/core/engine/EngineRegistry.ts` to register another implementation. |
+| `--engine <name>` | Orchestration engine to use (default: `react`). Registered engines: `react`, `lean`, `simple`, `swarm`, `langgraph`, `agentic`, `brain`, `procedure`. See `src/core/engine/EngineRegistry.ts` to register another implementation. |
 | `--serve` | Start the xcoder HTTP API server |
 | `--ui` | Start both the xcoder HTTP API server and the UI frontend |
 | `--port <number>` | Port for the API server (default: 3001) |
@@ -218,8 +218,12 @@ xcoder/
 │   │   │   ├── IReactEngine.ts       # Engine interface + V2 lifecycle
 │   │   │   ├── EngineRegistry.ts     # Factory pattern for engine creation
 │   │   │   ├── LeanEngine.ts         # Focused ReAct loop
+│   │   │   ├── SimpleReactEngine.ts  # Bare ReAct loop (no plan/phase/validation)
 │   │   │   ├── LangGraphEngine.ts    # LangGraph StateGraph-based loop
-│   │   │   └── SwarmEngine.ts        # Parallel swarm orchestration
+│   │   │   ├── SwarmEngine.ts        # Parallel swarm orchestration
+│   │   │   ├── AgenticEngine.ts      # Deterministic agentic ReAct loop
+│   │   │   ├── BrainEngine.ts        # MultiRoleRouter-based engine
+│   │   │   └── ProcedureEngine.ts    # Two-step procedure generation + execution
 │   │   ├── io/             # I/O abstractions
 │   │   │   ├── AgentIO.ts  # Abstract I/O interface
 │   │   │   └── AutoIO.ts   # Headless-safe I/O (no stdin)
@@ -278,14 +282,18 @@ xcoder/
 
 ## Engines
 
-xcoder provides four engine implementations, all interchangeable via the `IReactEngine` interface. Select one with the `--engine` flag or via `EngineRegistry.createEngine()`.
+xcoder provides eight engine implementations, all interchangeable via the `IReactEngine` interface. Select one with the `--engine` flag or via `EngineRegistry.createEngine()`.
 
 | Engine | Flag | Description |
 |--------|------|-------------|
 | **ReActOrchestrator** | `react` (default) | Full-featured engine with plan mode, phase planning, subagent delegation, goal validation, and self-healing |
 | **LeanEngine** | `lean` | Focused, self-contained ReAct loop — the core loop without plan mode or subagents. Supports V2 lifecycle (cancellation, progress observers, state tracking) |
+| **SimpleReactEngine** | `simple` | The bare ReAct loop with the same console output, but no Plan Mode, Phase Planning, or goal-validation retry. Context compaction and truncation guard still apply |
 | **LangGraphEngine** | `langgraph` | ReAct loop built on `@langchain/langgraph`'s StateGraph with explicit two-node state machine (agent ↔ tools). Supports V2 lifecycle |
 | **SwarmEngine** | `swarm` | Parallel swarm orchestration with WBS decomposition and concurrent agent dispatch. Supports V2 lifecycle |
+| **AgenticEngine** | `agentic` | Deterministic agentic ReAct loop with an injectable ThinkFn, driven by a MultiRoleRouter asking for a JSON AgentDecision each iteration |
+| **BrainEngine** | `brain` | Routes a task across ≥2 roles (orchestrator + critic) via the shared MultiRoleRouter and synthesizes the final answer |
+| **ProcedureEngine** | `procedure` | Two-step procedure generation (plan → strict JSON schema) plus local step execution over the tool dispatcher |
 
 ### Engine Registry
 
@@ -295,7 +303,7 @@ Engines are registered via `EngineRegistry.ts` using a factory pattern:
 import { createEngine, listEngines } from "./core/engine/EngineRegistry.js";
 
 const engine = createEngine("lean", { llm, telemetry, io, options });
-console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
+console.log(listEngines()); // ["react", "lean", "simple", "swarm", "langgraph", "agentic", "brain", "procedure"]
 ```
 
 ### IReactEngineV2 Lifecycle

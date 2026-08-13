@@ -83,7 +83,7 @@ xcoder --single-phase --task "复杂任务"
 | `--single-phase` | 关闭阶段规划，作为单个 ReAct 循环运行；默认阶段规划开启 |
 | `--auto` | 全自动模式，对所有交互式提示自动回答“是” |
 | `--isolated-workspace` | 在隔离的 `./workspace-agent` 副本中运行工具操作；默认关闭 |
-| `--engine <name>` | 编排引擎（默认：`react`）。已注册：`react`、`lean`、`langgraph`、`swarm` |
+| `--engine <name>` | 编排引擎（默认：`react`）。已注册：`react`、`lean`、`simple`、`swarm`、`langgraph`、`agentic`、`brain`、`procedure` |
 | `--serve` | 启动 xcoder HTTP API 服务器 |
 | `--ui` | 同时启动 API 服务器与 UI 前端 |
 | `--port <number>` | API 服务器端口（默认：3001） |
@@ -138,7 +138,7 @@ npm run xcoder:ui
 
 ## 引擎选择
 
-xcoder 内置四个可互换的编排引擎，均实现 `IReactEngine` / `IReactEngineV2` 接口。通过 `--engine <name>` 选择：
+xcoder 内置八个可互换的编排引擎，均实现 `IReactEngine` / `IReactEngineV2` 接口。通过 `--engine <name>` 选择：
 
 ```bash
 xcoder --engine <name> --task "列出 src/ 下的所有 TypeScript 文件"
@@ -150,6 +150,10 @@ xcoder --engine <name> --task "列出 src/ 下的所有 TypeScript 文件"
 | **LeanEngine** | `lean` | 聚焦的自包含 ReAct 循环，支持 V2 生命周期 |
 | **LangGraphEngine** | `langgraph` | 基于 `@langchain/langgraph` 的 StateGraph 构建的 ReAct 循环，支持 V2 生命周期 |
 | **SwarmEngine** | `swarm` | 并行 swarm 编排，带 WBS 分解与并发代理分发 |
+| **SimpleReactEngine** | `simple` | 极简 ReAct 循环，无 Plan 模式、阶段规划或目标验证重试 |
+| **AgenticEngine** | `agentic` | 带可注入 ThinkFn 的确定性 agentic ReAct 循环 |
+| **BrainEngine** | `brain` | 通过共享 MultiRoleRouter 将任务路由到 ≥2 个角色 |
+| **ProcedureEngine** | `procedure` | 两步式流程生成加本地步骤执行 |
 
 引擎在 `src/core/engine/EngineRegistry.ts` 中通过工厂模式注册。可以通过 `registerEngine("name", factory)` 添加新实现，无需修改 CLI 或 API。
 

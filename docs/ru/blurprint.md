@@ -82,7 +82,7 @@ registerEngine("react", (deps) => new ReActOrchestrator(deps.llm, deps.telemetry
 
 ## Движки
 
-Все четыре движка реализуют `IReactEngine` / интерфейс жизненного цикла V2 (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
+Все восемь движков реализуют `IReactEngine` / интерфейс жизненного цикла V2 (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
 
 | Движок | Имя регистрации | Описание |
 |---|---|---|
@@ -90,12 +90,16 @@ registerEngine("react", (deps) => new ReActOrchestrator(deps.llm, deps.telemetry
 | **LeanEngine** | `lean` | Сфокусированный автономный цикл ReAct — основной цикл без режима Plan и субагентов. Поддерживает жизненный цикл V2 |
 | **LangGraphEngine** | `langgraph` | Цикл ReAct на базе StateGraph из `@langchain/langgraph` с явной машиной состояний из двух узлов (агент ↔ инструменты). Поддерживает жизненный цикл V2 |
 | **SwarmEngine** | `swarm` | Параллельная оркестрация роем с декомпозицией WBS и конкурентной отправкой агентов. Поддерживает жизненный цикл V2 |
+| **SimpleReactEngine** | `simple` | Минимальный цикл ReAct без режима Plan, поэтапного планирования и повторной проверки целей |
+| **AgenticEngine** | `agentic` | Детерминированный агентный цикл ReAct с инъекционным ThinkFn |
+| **BrainEngine** | `brain` | Направляет задачу через ≥2 роли через общий MultiRoleRouter |
+| **ProcedureEngine** | `procedure` | Двухэтапная генерация процедуры плюс локальное выполнение шагов |
 
 Движки также можно создавать программно:
 
 ```ts
 const engine = createEngine("lean", { llm, telemetry, io, options });
-console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
+console.log(listEngines()); // ["react", "lean", "simple", "swarm", "langgraph", "agentic", "brain", "procedure"]
 ```
 
 ## Система навыков

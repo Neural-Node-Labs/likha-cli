@@ -82,20 +82,24 @@ Two implementations ship:
 
 ## Engines
 
-All four engines implement `IReactEngine` / the V2 lifecycle interface (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
+All eight engines implement `IReactEngine` / the V2 lifecycle interface (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
 
 | Engine | Registration Name | Description |
 |---|---|---|
 | **ReActOrchestrator** | `react` (default) | Full-featured engine with plan mode, phase planning, subagent delegation, goal validation, and self-healing |
 | **LeanEngine** | `lean` | Focused, self-contained ReAct loop — the core loop without plan mode or subagents. Supports V2 lifecycle |
+| **SimpleReactEngine** | `simple` | The bare ReAct loop with no Plan Mode, Phase Planning, or goal-validation retry |
 | **LangGraphEngine** | `langgraph` | ReAct loop built on `@langchain/langgraph`'s StateGraph with an explicit two-node state machine (agent ↔ tools). Supports V2 lifecycle |
 | **SwarmEngine** | `swarm` | Parallel swarm orchestration with WBS decomposition and concurrent agent dispatch. Supports V2 lifecycle |
+| **AgenticEngine** | `agentic` | Deterministic agentic ReAct loop with an injectable ThinkFn |
+| **BrainEngine** | `brain` | Routes a task across ≥2 roles via the shared MultiRoleRouter |
+| **ProcedureEngine** | `procedure` | Two-step procedure generation plus local step execution |
 
 Engines can also be created programmatically:
 
 ```ts
 const engine = createEngine("lean", { llm, telemetry, io, options });
-console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
+console.log(listEngines()); // ["react", "lean", "simple", "swarm", "langgraph", "agentic", "brain", "procedure"]
 ```
 
 ## Skill System

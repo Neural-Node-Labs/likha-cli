@@ -83,7 +83,7 @@ xcoder --single-phase --task "مهمة معقدة"
 | `--single-phase` | تعطيل تخطيط المراحل والتشغيل كحلقة ReAct واحدة؛ الافتراضي: تخطيط المراحل مفعّل |
 | `--auto` | الوضع المستقل بالكامل — يجيب تلقائيًا بـ"نعم" على جميع المطالبات التفاعلية |
 | `--isolated-workspace` | تشغيل عمليات الأدوات على نسخة معزولة `./workspace-agent` بدلاً من ملفات المشروع الحية؛ الافتراضي: إيقاف |
-| `--engine <name>` | محرّك التنسيق (الافتراضي: `react`). المسجّلون: `react`، `lean`، `langgraph`، `swarm` |
+| `--engine <name>` | محرّك التنسيق (الافتراضي: `react`). المسجّلون: `react`، `lean`، `simple`، `swarm`، `langgraph`، `agentic`، `brain`، `procedure` |
 | `--serve` | تشغيل خادم xcoder HTTP API |
 | `--ui` | تشغيل خادم API والواجهة الأمامية معًا |
 | `--port <number>` | منفذ خادم API (الافتراضي: 3001) |
@@ -138,7 +138,7 @@ npm run xcoder:ui
 
 ## اختيار المحرّك
 
-يوفّر xcoder أربعة محركات تنسيق قابلة للتبديل، جميعها تنفّذ واجهتي `IReactEngine` / `IReactEngineV2`. اختر واحدًا عبر `--engine <name>`:
+يوفّر xcoder ثمانية محركات تنسيق قابلة للتبديل، جميعها تنفّذ واجهتي `IReactEngine` / `IReactEngineV2`. اختر واحدًا عبر `--engine <name>`:
 
 ```bash
 xcoder --engine <name> --task "سرد جميع ملفات TypeScript داخل src/"
@@ -150,6 +150,10 @@ xcoder --engine <name> --task "سرد جميع ملفات TypeScript داخل sr
 | **LeanEngine** | `lean` | حلقة ReAct مركّزة ومكتفية بذاتها؛ تدعم دورة الحياة V2 |
 | **LangGraphEngine** | `langgraph` | حلقة ReAct مبنية على StateGraph من `@langchain/langgraph`؛ تدعم دورة الحياة V2 |
 | **SwarmEngine** | `swarm` | تنسيق swarm موازٍ مع تحليل WBS وتوزيع وكلاء متزامنين |
+| **SimpleReactEngine** | `simple` | حلقة ReAct بسيطة بدون وضع Plan أو تخطيط المراحل أو إعادة محاولة التحقق من الأهداف |
+| **AgenticEngine** | `agentic` | حلقة ReAct وكيلية حتمية مع ThinkFn قابل للحقن |
+| **BrainEngine** | `brain` | يوجّه المهمة عبر ≥2 أدوار عبر MultiRoleRouter المشترك |
+| **ProcedureEngine** | `procedure` | توليد إجراء من خطوتين مع تنفيذ محلي للخطوات |
 
 تُسجَّل المحركات في `src/core/engine/EngineRegistry.ts` عبر نمط المصنع. يمكن إضافة تنفيذات جديدة عبر `registerEngine("name", factory)` دون تعديل CLI أو API.
 

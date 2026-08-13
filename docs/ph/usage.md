@@ -108,7 +108,7 @@ npm run xcoder:ui
 
 ## Pagpili ng Engine
 
-Ang xcoder ay may apat na interchangeable orchestration engines, lahat ay nagpapatupad ng `IReactEngine` / `IReactEngineV2` interfaces. Pumili ng isa gamit ang `--engine <name>`:
+Ang xcoder ay may walo na interchangeable orchestration engines, lahat ay nagpapatupad ng `IReactEngine` / `IReactEngineV2` interfaces. Pumili ng isa gamit ang `--engine <name>`:
 
 ```bash
 xcoder --engine <name> --task "List all TypeScript files in src/"
@@ -120,6 +120,10 @@ xcoder --engine <name> --task "List all TypeScript files in src/"
 | **LeanEngine** | `lean` | Nakatutok at self-contained ReAct loop; sinusuportahan ang V2 lifecycle |
 | **LangGraphEngine** | `langgraph` | ReAct loop na binuo sa `@langchain/langgraph`'s StateGraph; sinusuportahan ang V2 lifecycle |
 | **SwarmEngine** | `swarm` | Parallel swarm orchestration na may WBS decomposition at concurrent agent dispatch |
+| **SimpleReactEngine** | `simple` | Minimal na ReAct loop na walang Plan Mode, Phase Planning, o goal-validation retry |
+| **AgenticEngine** | `agentic` | Deterministic na agentic ReAct loop na may injectable na ThinkFn |
+| **BrainEngine** | `brain` | Niruruta ang isang task sa ≥2 roles sa pamamagitan ng shared MultiRoleRouter |
+| **ProcedureEngine** | `procedure` | Two-step na procedure generation kasama ang local step execution |
 
 Ang mga engine ay nirerehistro sa `src/core/engine/EngineRegistry.ts` sa pamamagitan ng factory pattern. Ang mga bagong implementation ay maaaring idagdag gamit ang `registerEngine("name", factory)` — walang kinakailangang pagbabago sa CLI o API.
 

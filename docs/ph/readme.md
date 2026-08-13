@@ -7,12 +7,12 @@ Ang **xcoder** ay isang ReAct CLI agent na nakasulat sa TypeScript para sa Node.
 
 Ang xcoder ay isang CLI agent na sumusunod sa **ReAct** pattern: paulit-ulit itong nag-iisip tungkol sa isang task, tumatawag sa mga tool para kumuha ng impormasyon o gumawa ng mga pagbabago, inoobserbahan ang mga resulta, at inuulit ang proseso hanggang sa matapos ang task. Sinusuportahan nito ang maraming orchestration engines, hot-pluggable na skill directives, phase planning, isang HTTP API server, isang React UI, at isang built-in na self-healing mechanism na nakakakita kapag ang agent ay natigil.
 
-Ang bersyon 0.2.0 ay may apat na interchangeable orchestration engines (`react` default, `lean`, `langgraph`, `swarm`) at higit sa 30 na specialized skills na nilo-load mula sa `agent/skills/`.
+Ang bersyon 0.2.0 ay may walo na interchangeable orchestration engines (`react` default, `lean`, `simple`, `swarm`, `langgraph`, `agentic`, `brain`, `procedure`) at higit sa 30 na specialized skills na nilo-load mula sa `agent/skills/`.
 
 ## Pangunahing mga Tampok
 
 - **ReAct loop** na may Search → Action → Validation na mga phase
-- **Maraming engine implementations** — standard ReAct, LeanEngine, LangGraph, at Swarm
+- **Maraming engine implementations** — standard ReAct, LeanEngine, SimpleReactEngine, LangGraph, Swarm, AgenticEngine, BrainEngine, at ProcedureEngine
 - **Hot-pluggable skill system** — 30+ specialized skills (programmer, architect, devops, tester, at iba pa) na nilo-load mula sa `agent/skills/`
 - **Plan Mode** — gumagawa ng task plan bago ang execution, na may approval ng user
 - **Phase Planning** — hinahati ang mga complex task sa magkakasunod na phase na may isolated context
