@@ -1,3 +1,4 @@
+// ronin:version 1 | ronin:task task-4508cb | ronin:updated 2026-08-13T15:28:18.361Z | ronin:subtask code-st-885544
 export interface SkillHeader {
   name: string;
   role: string;
@@ -202,6 +203,34 @@ export interface ReActMemory {
 export interface IndexFile {
   generatedAt: string;
   entries: IndexEntry[];
+}
+
+export type SkillDiagnosticCode =
+  | "NO_SKILL_MD"
+  | "NO_FRONTMATTER"
+  | "LEGACY_METADATA"
+  | "YAML_ERROR"
+  | "INVALID_HEADER"
+  | "DIR_NAME_MISMATCH";
+
+/**
+ * A diagnostic recorded when a SKILL.md file cannot be parsed or has a
+ * recoverable problem (e.g. header name does not match its directory name).
+ * Diagnostics are collected on every scan and exposed via
+ * SkillRegistry.listDiagnostics(), so parse failures are loud instead of
+ * silently skipped.
+ */
+export interface SkillDiagnostic {
+  /** The skill directory this diagnostic was generated from. */
+  skillDir: string;
+  /** Path to the problematic SKILL.md file (or its directory). */
+  path: string;
+  /** Machine-readable diagnostic category. */
+  code: SkillDiagnosticCode;
+  /** Human-readable explanation of the problem. */
+  message: string;
+  /** Optional extra detail (e.g. YAML error message, list of invalid fields). */
+  detail?: string;
 }
 
 
