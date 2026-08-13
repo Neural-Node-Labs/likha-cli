@@ -19,6 +19,7 @@ import { dockerComposeUp } from "../tools/dockerComposeDeployTool.js";
 import { deployWorkspaceViaSsh } from "../tools/dockerDeploySshTool.js";
 import { initializeDatabase } from "../db/initialize.js";
 import { installProcessCrashHandler } from "../core/processCrashHandler.js";
+import { runPurge, type PurgeScope } from "./purge.js";
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -67,6 +68,11 @@ program
   .option("--remote-path <path>", "remote directory path for deployment (default: /opt/xcoder)")
   .option("--engine <name>", `orchestration engine to use (default: "${DEFAULT_ENGINE}"). Registered engines: ${listEngines().join(", ")}. See src/core/engine/EngineRegistry.ts to register another implementation.`, DEFAULT_ENGINE)
   .option("--initialize-db", "initialize the SQLite database (create tables, run migrations). Idempotent — safe to run multiple times.")
+  .option("--purge", "remove agent-internal metadata and generated artifacts (.agent/, .log/, tasks/) from the workspace")
+  .option("--purge-scope <scope>", "scope for --purge: 'workspace' (default) or 'global' (os.homedir())")
+  .option("--purge-targets <list>", "comma-separated subset of targets to purge (default: .agent,.log,tasks)")
+  .option("--purge-dry-run", "with --purge: print what would be removed without deleting anything")
+  .option("--purge-force", "with --purge: remove symlinks themselves (never their referents)")
   .action(async (taskArg, opts, cmd) => {
 
 
@@ -87,6 +93,43 @@ program
         io.error(
           `[Database] Initialization failed: ${err instanceof Error ? err.message : String(err)}`
         );
+        process.exit(1);
+      }
+      return;
+    }
+
+    // ─── Purge ─────────────────────────────────────────────────────────────
+    if (opts.purge) {
+      const scope: PurgeScope = opts.purgeScope === "global" ? "global" : "workspace";
+      const targets = opts.purgeTargets
+        ? String(opts.purgeTargets).split(",").map((t: string) => t.trim()).filter(Boolean)
+        : undefined;
+
+      try {
+        const result = await runPurge({
+          scope,
+          dryRun: opts.purgeDryRun === true,
+          force: opts.purgeForce === true,
+          targets,
+          confirm: (message) => io.confirm(message),
+        });
+
+        const label = opts.purgeDryRun ? "[Purge] (dry-run)" : "[Purge]";
+        for (const t of result.removed) {
+          console.log(`${opts.purgeDryRun ? "🔍" : "🗑️"} ${label} ${t}`);
+        }
+        for (const t of result.skipped) {
+          console.log(`⏭️  ${label} ${t} (not found — skipped)`);
+        }
+        for (const f of result.failed) {
+          console.error(`❌ ${label} ${f.target}: ${f.error}`);
+        }
+
+        if (result.failed.length > 0) {
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error(`❌ [Purge] ${err instanceof Error ? err.message : String(err)}`);
         process.exit(1);
       }
       return;
