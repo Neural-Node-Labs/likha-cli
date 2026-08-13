@@ -1,4 +1,4 @@
-<!-- ronin:version 2 | ronin:task task-bc7d1e | ronin:updated 2026-08-13T07:43:54.695Z | ronin:subtask document-st-2b7ee2 -->
+<!-- ronin:version 3 | ronin:task task-4508cb | ronin:updated 2026-08-13T16:15:00.000Z | ronin:subtask document-st-3e4140 -->
 # Engine/CLI/docs consistency verification
 
 Cross-checked engine definitions, CLI options, and documentation for full alignment (8 engines:
@@ -437,3 +437,25 @@ short-circuit: the tool executes once, then the loop stops — preserving the or
   `--engine agentic` after rollback throws with the known list, failing loudly rather than
   silently.
 - After any rollback, re-run `npm run regression`.
+
+# Update: skills-loading RCA fix and iteration-limit callback contract
+
+## What changed and why
+
+- **Skills no longer silently dropped (RCA: skills not loading).** The skill loader regex anchored YAML frontmatter at byte 0 of SKILL.md, so two valid skills never registered: `agent/skills/conversation/SKILL.md` (no frontmatter, legacy `# name:` comment metadata) and `agent/skills/filesystem-management/SKILL.md` (HTML comment before `---`). `SkillRegistry.loadHeaders()` hit `if (!match) continue;` and dropped both silently. `src/core/skillRegistry.ts` now tolerates a UTF-8 BOM, leading blank lines/whitespace, and leading HTML comments before frontmatter (up to 8 iterations), and reports anything still unparseable via new `SkillDiagnostic` codes (NO_SKILL_MD / LEGACY_METADATA / NO_FRONTMATTER / YAML_ERROR / INVALID_HEADER / DIR_NAME_MISMATCH) exposed through `listDiagnostics()` and an optional `onDiagnostic` constructor sink. Both SKILL.md files were converted to canonical YAML frontmatter.
+- **Iteration-limit callback now fires (defect 0001).** With phase planning enabled (the default), `runPhasePlanning()` wraps the real task in a synthetic subagent when no distinct phases are detected; the subagent path short-circuited to `synthesizeReport()` before invoking the caller's `onIterationLimitReached`, so the callback never fired. `RunOptions` gains `suppressOnIterationLimitReached`, set only by genuine `subagent_tool` spawns; phase-planning children keep `isSubagent: true` but no longer suppress the callback and pass `skipPlanMode: true` so they do not re-enter plan mode. Default `maxIterations` in `src/core/orchestrator.ts` corrected from 20 to 50 to match the documented contract.
+
+## Verified
+
+- `npx vitest run --config vitest.config.ts src/core` -> 74/74 suites, 246/246 tests passed.
+- `npm run regression` (vitest run src) -> 166/166 suites, 536/536 tests passed.
+- `npm run typecheck` -> 0 errors.
+- `node tmp/check-skills.cjs` -> ok=37, bad=0 for both `agent/skills` and `dist/config/agent/skills`; `node dist/cli/index.js --skills` lists exactly 37 skills including `conversation` and `filesystem-management`.
+- New/kept coverage: `src/core/__tests__/skillRegistry.test.ts` (19 tests) and `src/core/__tests__/orchestratorMaxIterations.test.ts` (2 tests: default 50 and explicit `maxIterations: 3` both reach `onIterationLimitReached`).
+
+## Rollback
+
+- Skills: revert to the original byte-0-anchored loader by restoring the pre-fix `src/core/skillRegistry.ts` to the anchored-regex version, and restore the legacy comment headers in the two SKILL.md files. The two skills would again be dropped, so keep the canonical frontmatter unless the loader revert is intentional.
+- Iteration-limit contract: remove `suppressOnIterationLimitReached` from `RunOptions`, reset phase-planning children to `{ ...runOpts, isSubagent: true }` without `skipPlanMode`, and restore `maxIterations = this.opts.maxIterations ?? 20`. Re-run `npm run regression`; `orchestratorMaxIterations.test.ts` will fail again (expected -1), which documents the regression.
+
+Full RCA: .ronin/defects/defect0001.md (status FIXED).
