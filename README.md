@@ -3,7 +3,7 @@
 
 **xcoder** — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.
 
-- **Version:** 0.2.0
+- **Version:** 1.0.0
 - **License:** MIT
 - **Engine:** TypeScript (Node.js), ReAct loop with multiple engine implementations
 - **LLM:** DeepSeek (default), with mock client for testing
