@@ -1,3 +1,4 @@
+// ronin:version 5 | ronin:task task-ac9eef | ronin:updated 2026-08-13T13:47:39.208Z | ronin:subtask code-st-f034f3
 import { LlmClient, TelemetryInterface } from "../types.js";
 import { AgentIO } from "../io/AgentIO.js";
 import { IReactEngine } from "./IReactEngine.js";
@@ -6,6 +7,9 @@ import { LeanEngine, LeanEngineOptions } from "./LeanEngine.js";
 import { SimpleReactEngine, SimpleReactEngineOptions } from "./SimpleReactEngine.js";
 import { LangGraphEngine, LangGraphEngineOptions } from "./LangGraphEngine.js";
 import { SwarmEngine, SwarmEngineOptions } from "./SwarmEngine.js";
+import { AgenticEngine } from "./AgenticEngine.js";
+import { BrainEngine } from "./BrainEngine.js";
+import { ProcedureEngine } from "./ProcedureEngine.js";
 
 export interface EngineDeps {
   llm: LlmClient;
@@ -116,3 +120,19 @@ registerEngine("langgraph", ({ llm, telemetry, io, options }) => {
   };
   return new LangGraphEngine(llm, telemetry, lgOpts);
 });
+
+// The AgenticEngine: deterministic agentic ReAct loop (port of the reference Python agentic_workflow) with
+// an injectable ThinkFn. The default ThinkFn drives the loop through a MultiRoleRouter
+// ("orchestrator" role) asking for a JSON AgentDecision each iteration; tests inject a
+// scripted ThinkFn directly.
+registerEngine("agentic", (deps) => new AgenticEngine(deps));
+
+// The BrainEngine: exposes the shared MultiRoleRouter (port of the reference Python brain_workflow/router.py)
+// as a callable engine. run() routes a task across >=2 roles (orchestrator + critic) and
+// synthesizes the final answer.
+registerEngine("brain", (deps) => new BrainEngine(deps));
+
+// The ProcedureEngine: two-step procedure generation (plan -> strict JSON schema, port of
+// the reference Python procedure_workflow/orchestrator.py) plus local step execution over the existing tool
+// dispatcher. Returns the concatenated step outputs as the final answer.
+registerEngine("procedure", (deps) => new ProcedureEngine(deps));

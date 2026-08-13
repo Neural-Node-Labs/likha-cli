@@ -361,3 +361,68 @@ and locks the behavior down with a Windows-safe boundary test suite.
   `--purge` behavior should be back to its pre-fix state with the pre-existing `purge.test.ts`
   / `purgeCommand.test.ts` still passing.
 
+<!-- ronin:version 1 | ronin:task task-ac9eef | ronin:updated 2026-08-13T14:05:52.020Z | ronin:subtask document-st-4a162c -->
+
+## 6. Workflow / orchestrator engines: agentic, brain, procedure
+
+### What changed and why
+
+The three workflow/orchestrator libraries that previously lived as temporary/experimental
+Python packages under `libs/` (agentic_workflow, brain_workflow, procedure_workflow) are now
+canonical TypeScript in `src/core/`, registered into the engine registry, and covered by
+vitest. **`libs/` is temporary reference material — do not build new work on top of it.**
+Anything added to those workflows must target `src/core/`.
+
+- `src/core/engine/AgenticEngine.ts` — registered as `"agentic"`. Deterministic agentic ReAct
+  loop (port of the reference Python agentic_workflow/orchestrator.py) with an injectable
+  ThinkFn. The default ThinkFn asks the shared MultiRoleRouter ("orchestrator" role) for a JSON
+  AgentDecision each iteration; the loop itself never calls an LLM directly
+  (`src/core/workflows/agenticLoop.ts`), so it is fully unit-testable without a live model.
+  `maxIterations` defaults to 25. Implements IReactEngine + IReactEngineV2.
+- `src/core/engine/BrainEngine.ts` — registered as `"brain"`. Exposes the shared MultiRoleRouter
+  (port of brain_workflow/router.py) as a callable engine. `run()` routes a task across ≥2 roles
+  (orchestrator + critic by default, both over the injected LlmClient) and synthesizes the
+  final answer, folding critic notes in after the orchestrator's draft.
+- `src/core/engine/ProcedureEngine.ts` — registered as `"procedure"`. Two-step procedure
+  generation (plan → strict JSON `Procedure`, port of procedure_workflow/orchestrator.py)
+  followed by local step execution over the existing tool dispatcher
+  (`src/core/workflows/stepExecution.ts`, honoring dependsOn / maxRetries / onFailure under
+  workspaceRoot). Remote SSH execution is explicitly deferred (design D4); everything runs
+  locally today.
+- `src/core/workflows/{agenticLoop,router,procedure,stepExecution,types}.ts` — shared ported
+  workflow layer used by the three engines: the agentic loop, MultiRoleRouter with per-role
+  model/temperature/responseFormat overrides, procedure generation, local step execution, and
+  the shared types (Phase, AgentDecision, ThinkFn, ProcedureStep, …).
+- `src/core/engine/EngineRegistry.ts` — registers the three new engines; `listEngines()` now
+  returns react (default), lean, simple, langgraph, swarm, agentic, brain, procedure. The CLI
+  flag `--engine <name>` (src/cli/index.ts) selects any registered engine at runtime; an
+  unknown name throws with the known list.
+- Tests: `src/core/engine/__tests__/{AgenticEngine,BrainEngine,ProcedureEngine,WorkflowEnginesRegistry}.test.ts`
+  and `src/core/workflows/__tests__/{router,stepExecution}.test.ts`.
+
+### Test-authoring defect found & fixed (RCA: .ronin/defects/defect0001.md)
+
+The AC-4 smoke test in `AgenticEngine.test.ts` scripted a stateless ThinkFn that always
+returned `done: false` — contradicting the agentic loop contract (the loop calls `think` until
+`done: true` or `tool: "none"`), so the loop correctly ran to maxout (25) while the test
+asserted 1 call. That was a test-authoring defect, not an engine defect. Fixed in the test by
+routing the single tool-execution decision through the loop's `phase: "validation"`
+short-circuit: the tool executes once, then the loop stops — preserving the original
+1-think-call / 1-iteration assertions. No production code change was required.
+
+### Verified
+
+- `npm run typecheck` → 0 errors.
+- `npm run regression` (`vitest run src`) → 160 suites / 515 tests passed, 0 failed.
+
+### Rollback
+
+- Engine registrations: remove the three `registerEngine(...)` blocks from
+  `src/core/engine/EngineRegistry.ts`, then delete the new engine + workflow files
+  (`src/core/engine/{AgenticEngine,BrainEngine,ProcedureEngine}.ts`,
+  `src/core/workflows/{agenticLoop,router,procedure,stepExecution,types}.ts`) and their test
+  files.
+- `--engine` continues to resolve against the remaining registered engines; a stale
+  `--engine agentic` after rollback throws with the known list, failing loudly rather than
+  silently.
+- After any rollback, re-run `npm run regression`.
