@@ -1,3 +1,4 @@
+// ronin:version 1 | ronin:task task-b88b43 | ronin:updated 2026-08-13T05:50:42.245Z | ronin:subtask code-st-5a7e6a
 import { ToolSchema } from "../core/types.js";
 
 export const TOOL_SCHEMAS: ToolSchema[] = [
@@ -543,6 +544,334 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
           },
         },
         required: ["url", "method"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_directory_tool",
+      description: "List the contents of a directory (shallow tree) in the workspace, respecting ignore rules. Default depth is 2 (max 4), capped at 1000 entries. Use this to discover what is in a folder before reading individual files.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Directory path relative to the workspace root. Defaults to the workspace root." },
+          depth: { type: "number", description: "How many levels deep to recurse. Default 2, max 4." },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "find_files_tool",
+      description: "Find files in the workspace by glob pattern, respecting ignore rules. Cheaper than a full directory walk; use before reading. Cap: 200 results by default.",
+      parameters: {
+        type: "object",
+        properties: {
+          pattern: { type: "string", description: "Glob pattern, e.g. '**/*.test.ts'" },
+          limit: { type: "number", description: "Max results to return. Default 200." },
+        },
+        required: ["pattern"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_dependency_graph_tool",
+      description: "Best-effort import/importer graph for one file. Returns that file's import paths and which files import it. Use to understand coupling before refactoring a file.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "File path relative to the workspace root" },
+        },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_code_tool",
+      description: "Search file contents by regex with line numbers and optional context lines. Built on grep_tool. Cap: 200 matches — if truncated, add globPattern or tighten the regex.",
+      parameters: {
+        type: "object",
+        properties: {
+          pattern: { type: "string", description: "Regular expression to search for" },
+          globPattern: { type: "string", description: "Glob to restrict the search to. Defaults to **/*" },
+          contextLines: { type: "number", description: "Context lines before/after each match. Default 2, max 5." },
+        },
+        required: ["pattern"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_ast_tool",
+      description: "Structural search for TS/JS declarations (function login, class Foo, calls:bar) using ts-morph. Non-TS files use a documented regex fallback marked parserUsed=regex. Use before reading files to locate exact symbols.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Structural target, e.g. 'function login', 'class Foo', 'interface Bar', 'calls:baz'" },
+          pathGlob: { type: "string", description: "Glob restricting which files to search. Defaults to TS/JS files in the workspace." },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "read_outline_tool",
+      description: "Read a structural skeleton of a file (functions/classes/interfaces with line numbers, signatures; bodies collapsed). Always the cheapest first read for files over ~150 lines; never a full dump.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+        },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "read_file_range_tool",
+      description: "Read a line range of a file (1-based inclusive). Capped at ~2000 tokens; if truncated, request a narrower range. Returns readSha1 for staleness-guarded line_patch_tool edits — pass it as expectedSha1.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+          startLine: { type: "number", description: "First line to read (1-based)" },
+          endLine: { type: "number", description: "Last line to read (inclusive)" },
+        },
+        required: ["path", "startLine", "endLine"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "read_multiple_files_tool",
+      description: "Read multiple labeled sections from one or more files in a single call. Use instead of N read_tool calls for cross-file analysis. Capped at ~8000 tokens total. Each section returns readSha1.",
+      parameters: {
+        type: "object",
+        properties: {
+          files: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                path: { type: "string", description: "Path relative to the workspace root" },
+                startLine: { type: "number", description: "Optional first line (default 1)" },
+                endLine: { type: "number", description: "Optional last line (default end of file)" },
+              },
+              required: ["path"],
+            },
+          },
+        },
+        required: ["files"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "read_full_file_tool",
+      description: "Read an entire file, but refused above 500 lines unless allowLarge: true (the refusal message then suggests read_outline_tool / read_file_range_tool). Use for small files only.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+          allowLarge: { type: "boolean", description: "Set true to read files over the 500-line gate." },
+        },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "git_diff_tool",
+      description: "Low-token git change summary (git diff --stat) for the workspace or one file. Pass rawDiff: true for the full unified diff. Use to confirm what changed after edits.",
+      parameters: {
+        type: "object",
+        properties: {
+          ref: { type: "string", description: "Ref to diff against. Default HEAD." },
+          path: { type: "string", description: "Optional file path to restrict the diff to." },
+          rawDiff: { type: "boolean", description: "Set true to include the full unified diff." },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "git_log_tool",
+      description: "Recent commit subjects for the workspace or one file (low-token summary). Max 50 entries.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Optional file path to restrict the log to." },
+          maxCount: { type: "number", description: "How many commits to return. Default 10, max 50." },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_replace_block_tool",
+      description: "Replace an exact string block with another. Search block must match EXACTLY ONCE (0 or 2+ matches is a hard error with zero writes). For unique single-location string edits.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+          searchBlock: { type: "string", description: "Exact block of text to find — must occur exactly once" },
+          replaceBlock: { type: "string", description: "Block of text to replace it with" },
+        },
+        required: ["path", "searchBlock", "replaceBlock"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sed_replace_tool",
+      description: "Regex replace in one file (pure Node). Optional lineRange restricts the rewrite to a window. For simple regex edits in a single file.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+          pattern: { type: "string", description: "JavaScript regex source, e.g. '\\bfoo\\b'" },
+          replacement: { type: "string", description: "Replacement string ($1 backrefs supported)" },
+          flags: { type: "string", description: "Regex flags, e.g. 'g'. Default 'g'." },
+          lineRange: {
+            type: "object",
+            properties: { start: { type: "number" }, end: { type: "number" } },
+            required: ["start", "end"],
+          },
+        },
+        required: ["path", "pattern", "replacement"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "sed_replace_multi_tool",
+      description: "Regex replace across files matching a glob. Dry-run is the default (true): reports match counts and sample diffs WITHOUT writing. Pass dryRun: false to apply.",
+      parameters: {
+        type: "object",
+        properties: {
+          globPattern: { type: "string", description: "Glob selecting files to process" },
+          pattern: { type: "string", description: "JavaScript regex source" },
+          replacement: { type: "string", description: "Replacement string" },
+          flags: { type: "string", description: "Regex flags, e.g. 'g'. Default 'g'." },
+          dryRun: { type: "boolean", description: "Default true (no writes). Set false to apply." },
+        },
+        required: ["globPattern", "pattern", "replacement"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "line_patch_tool",
+      description: "Replace lines [startLine..endLine] with newContent. REQUIRES expectedSha1 from the most recent read_file_range_tool / read_multiple_files_tool for that file. Refuses (zero writes) if the file changed since that read. Use for line-addressed edits.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+          startLine: { type: "number", description: "First line to replace (1-based)" },
+          endLine: { type: "number", description: "Last line to replace (inclusive)" },
+          newContent: { type: "string", description: "Replacement lines" },
+          expectedSha1: { type: "string", description: "readSha1 returned by the latest read of this file; staleness guard." },
+        },
+        required: ["path", "startLine", "endLine", "newContent", "expectedSha1"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_function_tool",
+      description: "AST-scoped whole-function rewrite (TS/JS only, via ts-morph). Finds the unique function declaration by name and replaces its full text with newCode. Non-TS files are rejected — no silent fallback.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+          functionName: { type: "string", description: "Exact function name to replace" },
+          newCode: { type: "string", description: "Full new function declaration text" },
+        },
+        required: ["path", "functionName", "newCode"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "rename_symbol_tool",
+      description: "Scope-aware identifier rename in one TS/JS file (via ts-morph). Only references that resolve to the declared symbol are renamed — strings, comments, and templates are never touched. Prefer this over raw replacements.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+          name: { type: "string", description: "Current identifier name" },
+          newName: { type: "string", description: "New identifier name" },
+        },
+        required: ["path", "name", "newName"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "apply_unified_diff_tool",
+      description: "Apply a multi-hunk unified diff to one file. In a git repo runs git apply --check first — zero writes on any invalid hunk; the error names the first failing hunk. For multi-hunk edits.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Target file path relative to the workspace root" },
+          diff: { type: "string", description: "Unified diff (--- a/... +++ b/... @@ hunks)" },
+        },
+        required: ["path", "diff"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "write_file_tool",
+      description: "Write an entire file. Refused above the 200-line soft ceiling unless force: true (which logs the override). For full rewrites only — prefer search_replace_block_tool / line_patch_tool / apply_unified_diff_tool for partial changes.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+          content: { type: "string", description: "Full file contents" },
+          force: { type: "boolean", description: "Set true to allow writing over the 200-line ceiling." },
+        },
+        required: ["path", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "validate_file_tool",
+      description: "Post-edit syntax check on a single file. Returns ONLY error lines (or ok: true). TS/JS via the TypeScript compiler API in-process; JSON best-effort; other languages ok + note. Call after every edit.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path relative to the workspace root" },
+          lang: { type: "string", description: "Optional language override (ts, js, json). Default derived from extension." },
+        },
+        required: ["path"],
       },
     },
   },

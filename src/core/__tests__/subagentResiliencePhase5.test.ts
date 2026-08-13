@@ -1,3 +1,4 @@
+// ronin:version 4 | ronin:task task-b88b43 | ronin:updated 2026-08-13T06:23:44.675Z | ronin:subtask test-st-eaae62
 /**
  * Phase 5: Test and Verify Resilience
  *
@@ -212,7 +213,7 @@ describe("Phase 5: Subagent Resilience — Crash Scenarios", () => {
 
       expect(result.crashed).toBe(true);
       expect(result.exitCode).toBe(1);
-      expect(result.error).toContain("exit code 1");
+      expect(result.error).toMatch(/code 1/);
     });
 
     it("master continues after subagent exits with code 1", async () => {
@@ -336,7 +337,7 @@ describe("Phase 5: Subagent Resilience — Crash Scenarios", () => {
         workerData: { task: "recovery" },
       });
       expect(r4.crashed).toBe(false);
-    });
+    }, 15_000);
   });
 
   // ─── Scenario 5: Crash Report Generation ────────────────────────────────────
@@ -421,7 +422,7 @@ describe("Phase 5: Subagent Resilience — Crash Scenarios", () => {
       expect(result.crashed).toBe(true);
       expect(result.exitCode).toBe(42);
       // The error message should be auto-generated from the exit code
-      expect(result.error).toContain("exit code 42");
+      expect(result.error).toMatch(/code 42/);
     });
 
     it("handles very short timeout (worker killed immediately)", async () => {

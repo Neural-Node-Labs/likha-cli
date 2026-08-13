@@ -1,5 +1,12 @@
+// ronin:version 6 | ronin:task task-d8bbc5 | ronin:updated 2026-08-13T07:33:07.199Z | ronin:subtask test-st-7dfd75
 import { LlmClient, LlmMessage, LlmResponse, ToolSchema } from "../core/types.js";
-import { LlmConfig, resolveModelForSkill } from "../config/loadConfig.js";
+import {
+  LlmConfig,
+  resolveModelForSkill,
+  resolveOpenAiBaseUrl,
+  resolveOpenAiEndpoint,
+  DEFAULT_OPENAI_COMPATIBLE_PROVIDER_URLS,
+} from "../config/loadConfig.js";
 import { TelemetryInterface } from "../core/types.js";
 
 /**
@@ -50,10 +57,11 @@ export class DeepSeekClient implements LlmClient {
     opts: { tools?: ToolSchema[]; temperature?: number; responseFormat?: "json_object" } | undefined,
     telemetrySource: string
   ): Promise<LlmResponse> {
-    if (!config.base_url || !config.endpoint) {
+    const baseUrl = resolveOpenAiBaseUrl(config) ?? config.base_url;
+    if (!baseUrl) {
       throw new Error(`provider "${config.provider}" is missing base_url/endpoint in its config`);
     }
-    const url = `${config.base_url}${config.endpoint}`;
+    const url = `${baseUrl}${resolveOpenAiEndpoint(config)}`;
 
     // Per DeepSeek's Thinking Mode docs: temperature/top_p/presence_penalty/frequency_penalty
     // have NO EFFECT in thinking mode (silently ignored, not an error) -- omit them entirely
@@ -238,23 +246,26 @@ export class DeepSeekClient implements LlmClient {
       if (provider === "anthropic") {
         return await this.callAnthropic(model, apiKey, messages, this.config, opts);
       }
-      if (provider === "deepseek" || this.config.fallback.base_url) {
-        // Any OpenAI-compatible fallback (DeepSeek or otherwise), as long as base_url/endpoint
-        // are given — reuses the exact same resolveModelForSkill-shaped defaults as primary,
-        // just with the fallback's own model/temperature/thinking left at config defaults
-        // (no per-skill overrides applied to the fallback provider).
+      const fallbackBaseUrl = this.config.fallback.base_url ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URLS[provider];
+      if (fallbackBaseUrl) {
+        // Any OpenAI-compatible fallback (DeepSeek or otherwise), as long as the base URL
+        // can be resolved from the explicit fallback.base_url or the known-provider registry
+        // — reuses the exact same resolveModelForSkill-shaped defaults as primary, just with
+        // the fallback's own model/temperature/thinking left at config defaults (no per-skill
+        // overrides applied to the fallback provider).
         const fallbackConfig: LlmConfig = {
           ...this.config,
           provider,
           model,
           api_key_env,
-          base_url: this.config.fallback.base_url ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URLS[provider],
+          base_url: fallbackBaseUrl,
           endpoint: this.config.fallback.endpoint ?? "/chat/completions",
         };
+
         const resolved = { model, temperature: this.config.temperature, thinking: false, reasoningEffort: undefined };
         return await this.callOpenAiCompatible(model, apiKey, messages, fallbackConfig, resolved, opts, "DeepSeekClient.fallback");
       }
-      throw new Error(`Unsupported fallback provider: ${provider}`);
+      throw new Error(`Unsupported fallback provider: ${provider} (no base_url and not a known provider)`);
     } catch (err) {
       throw new Error(
         `Primary LLM call failed: ${reason}. Fallback provider ${provider} also failed: ${err instanceof Error ? err.message : String(err)}`
@@ -263,12 +274,22 @@ export class DeepSeekClient implements LlmClient {
   }
 }
 
-/** Known base URLs for OpenAI-compatible providers, so a fallback block doesn't have to repeat
- *  base_url/endpoint if it's just naming a well-known provider. Explicit base_url in config
- *  always wins over this. */
-const DEFAULT_OPENAI_COMPATIBLE_BASE_URLS: Record<string, string> = {
-  deepseek: "https://api.deepseek.com/v1",
-};
+/**
+ * Recommended construction seam for LLM clients. Currently always returns a DeepSeekClient
+ * (which routes to Anthropic or any OpenAI-compatible provider based on config), but gives
+ * callers a stable factory to migrate behind if a provider-specific client is ever needed.
+ */
+export function createLlmClient(
+  config: LlmConfig,
+  telemetry?: TelemetryInterface,
+  skillName?: string
+): LlmClient {
+  return new DeepSeekClient(config, telemetry, skillName);
+}
+
+/** Backward-compatible alias: the authoritative registry now lives in src/config/loadConfig.ts
+ *  (DEFAULT_OPENAI_COMPATIBLE_PROVIDER_URLS) so both the client and config layer agree on it. */
+const DEFAULT_OPENAI_COMPATIBLE_BASE_URLS = DEFAULT_OPENAI_COMPATIBLE_PROVIDER_URLS;
 
 function stripUndefinedOrig(message: LlmMessage): LlmMessage {
   return Object.fromEntries(Object.entries(message).filter(([, v]) => v !== undefined)) as LlmMessage;

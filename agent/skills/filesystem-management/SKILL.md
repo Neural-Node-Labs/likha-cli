@@ -1,3 +1,4 @@
+<!-- ronin:version 2 | ronin:task task-b88b43 | ronin:updated 2026-08-13T05:51:17.368Z | ronin:subtask code-st-5a7e6a -->
 ---
 name: filesystem-management
 role: Filesystem/Workspace Manager
@@ -8,9 +9,23 @@ description: >
   or when other skills need a fresh index before they can trust file state.
 triggers: [index, filesystem, "clean up files", organize, move files, delete files, workspace, ".agentignore", scan directory]
 version: 1.0
-requires_tools: [glob_tool, grep_tool, read_tool, write_edit_tool, run_command_tool, indexing_tool]
+requires_tools: [glob_tool, grep_tool, read_tool, write_edit_tool, run_command_tool, indexing_tool,
+  list_directory_tool, find_files_tool, get_dependency_graph_tool, search_code_tool, search_ast_tool,
+  read_outline_tool, read_file_range_tool, read_multiple_files_tool, read_full_file_tool,
+  git_diff_tool, git_log_tool, search_replace_block_tool, sed_replace_tool, sed_replace_multi_tool,
+  line_patch_tool, update_function_tool, rename_symbol_tool, apply_unified_diff_tool,
+  write_file_tool, validate_file_tool]
 composes_with: [programmer, architect, devops, analyst]
 ---
+
+## Efficient Filesystem Protocol
+- **Search-first** — locate with find_files_tool / search_code_tool / search_ast_tool / get_dependency_graph_tool before starting full reads.
+- **Outline-first** — for any file over ~150 lines, call read_outline_tool before read_file_range_tool / read_full_file_tool.
+- **Batch reads** — one read_multiple_files_tool call instead of N read_tool calls for cross-file analysis.
+- **Cheapest edit ladder** — exact string → search_replace_block_tool; regex single/bulk → sed_replace_tool / sed_replace_multi_tool; line-addressed → line_patch_tool (always with expectedSha1); whole function → update_function_tool; semantic rename → rename_symbol_tool; multi-hunk → apply_unified_diff_tool; full rewrite → write_file_tool with force:true above 200 lines.
+- **Staleness** — never patch line numbers you did not just read: pass expectedSha1 from the latest read_file_range_tool / read_multiple_files_tool; line_patch_tool refuses on mismatch.
+- **Validate after every edit** — edit tools report validation themselves; also call validate_file_tool to get only error lines.
+- **What changed?** — run git_diff_tool (stat) after edits to confirm intent.
 
 ## Role
 Owns the accuracy of the agent's picture of "what's on disk" and performs filesystem

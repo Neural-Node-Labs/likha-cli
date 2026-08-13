@@ -1,3 +1,4 @@
+// ronin:version 3 | ronin:task task-b88b43 | ronin:updated 2026-08-13T05:52:50.240Z | ronin:subtask code-st-5a7e6a
 import { ToolCall } from "../core/types.js";
 import { TOOL_SCHEMAS } from "./toolSchemas.js";
 import { globTool } from "./globTool.js";
@@ -20,6 +21,26 @@ import { dockerComposeUp } from "./dockerComposeDeployTool.js";
 import { rebuildIndex, readIndexedFile } from "./indexingTool.js";
 import { getWorkspaceInfo } from "./workspaceInfoTool.js";
 import { readTaskHistory, searchTaskHistory } from "../core/taskHistory.js";
+import { handler as listDirectoryHandler } from "./listDirectoryTool.js";
+import { handler as findFilesHandler } from "./findFilesTool.js";
+import { handler as getDependencyGraphHandler } from "./getDependencyGraphTool.js";
+import { handler as searchCodeHandler } from "./searchCodeTool.js";
+import { handler as searchAstHandler } from "./searchAstTool.js";
+import { handler as readOutlineHandler } from "./readOutlineTool.js";
+import { handler as readFileRangeHandler } from "./readFileRangeTool.js";
+import { handler as readMultipleFilesHandler } from "./readMultipleFilesTool.js";
+import { handler as readFullFileHandler } from "./readFullFileTool.js";
+import { handler as gitDiffHandler } from "./gitDiffTool.js";
+import { handler as gitLogHandler } from "./gitLogTool.js";
+import { handler as searchReplaceBlockHandler } from "./searchReplaceBlockTool.js";
+import { handler as sedReplaceHandler } from "./sedReplaceTool.js";
+import { handler as sedReplaceMultiHandler } from "./sedReplaceMultiTool.js";
+import { handler as linePatchHandler } from "./linePatchTool.js";
+import { handler as updateFunctionHandler } from "./updateFunctionTool.js";
+import { handler as renameSymbolHandler } from "./renameSymbolTool.js";
+import { handler as applyUnifiedDiffHandler } from "./applyUnifiedDiffTool.js";
+import { handler as writeFileToolHandler } from "./writeFileTool.js";
+import { handler as validateFileHandler } from "./validateFileTool.js";
 
 /**
  * Attempts to parse JSON with automatic repair for common LLM generation errors.
@@ -670,6 +691,86 @@ case "conversation_tool": {
           }
         }
 
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "list_directory_tool": {
+        const result = await listDirectoryHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "find_files_tool": {
+        const result = await findFilesHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "get_dependency_graph_tool": {
+        const result = await getDependencyGraphHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "search_code_tool": {
+        const result = await searchCodeHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "search_ast_tool": {
+        const result = await searchAstHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "read_outline_tool": {
+        const result = await readOutlineHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "read_file_range_tool": {
+        const result = await readFileRangeHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "read_multiple_files_tool": {
+        const result = await readMultipleFilesHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "read_full_file_tool": {
+        const result = await readFullFileHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "git_diff_tool": {
+        const result = await gitDiffHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "git_log_tool": {
+        const result = await gitLogHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "search_replace_block_tool": {
+        const result = await searchReplaceBlockHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "sed_replace_tool": {
+        const result = await sedReplaceHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "sed_replace_multi_tool": {
+        const result = await sedReplaceMultiHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "line_patch_tool": {
+        const result = await linePatchHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "update_function_tool": {
+        const result = await updateFunctionHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "rename_symbol_tool": {
+        const result = await renameSymbolHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "apply_unified_diff_tool": {
+        const result = await applyUnifiedDiffHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "write_file_tool": {
+        const result = await writeFileToolHandler(args as any, cwd);
+        return { toolCallId: call.id, toolName: name, observation: result, isError: false };
+      }
+      case "validate_file_tool": {
+        const result = await validateFileHandler(args as any, cwd);
         return { toolCallId: call.id, toolName: name, observation: result, isError: false };
       }
       default:

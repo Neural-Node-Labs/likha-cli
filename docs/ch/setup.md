@@ -1,4 +1,4 @@
-<!-- ronin:version 1 | ronin:task task-5e8fe0 | ronin:updated 2026-08-11T16:38:32.329Z | ronin:subtask code-st-be6a3a -->
+<!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:42.400Z | ronin:subtask code-st-82c66c -->
 # xcoder 安装与配置
 
 本文档说明如何安装 xcoder、配置环境变量、初始化数据库，以及搭建开发工作流。
@@ -37,10 +37,12 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 | 变量 | 用途 |
 |---|---|
-| `DEEPSEEK_API_KEY` | DeepSeek API 密钥（真实 LLM 运行必需） |
-| `DEEPSEEK_BASE_URL` | DeepSeek API 基础 URL |
-| `DEEPSEEK_MODEL` | 模型名称（默认：`deepseek-chat`） |
-| `ANTHROPIC_API_KEY` | 可选备用提供方，仅在 DeepSeek 不可用/未设置时使用 |
+| `DEEPSEEK_API_KEY` | DeepSeek API 密钥（默认提供方——默认运行必需） |
+| `OPENAI_API_KEY` | OpenAI API 密钥（见下方 `provider: openai`） |
+| `OPENROUTER_API_KEY` | OpenRouter API 密钥（见下方 `provider: openrouter`） |
+| `GROQ_API_KEY` | Groq API 密钥（见下方 `provider: groq`） |
+| `OLLAMA_API_KEY` | Ollama API 密钥——本地使用可选；可设任意名称 |
+| `ANTHROPIC_API_KEY` | Anthropic API 密钥——备用，或在 `agent/config/llm.yaml` 中设置 `provider: anthropic` 切换 |
 | `GITHUB_TOKEN` | 用于 `github_tool` HTTPS 认证（clone/fetch/pull/push）；仅以内存认证头形式传递 |
 | `XCODER_API_KEY` | API 服务器 Bearer Token 认证；未设置时 API 无认证运行 |
 | `XCODER_API_PORT` | API 服务器端口（默认：3001） |
@@ -69,8 +71,11 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 ```env
 DEEPSEEK_API_KEY=sk-your-key-here
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
+# OPENAI_API_KEY=sk-...
+# OPENROUTER_API_KEY=sk-...
+# GROQ_API_KEY=sk-...
+# OLLAMA_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-ant-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
@@ -83,6 +88,47 @@ DEEPSEEK_MODEL=deepseek-chat
 ```
 
 注意：`MAX_ITERATIONS` 在 `.env.example` 的注释中写为默认 10，但代码默认值是 20；本文档将该变量作为覆盖选项说明，不断言具体默认值。
+
+### LLM 提供方
+
+xcoder 的 LLM 后端完全由配置驱动：**DeepSeek 是默认提供方**，但任何与 OpenAI 兼容的提供方（OpenAI、OpenRouter、Groq、Ollama、公司代理等）以及 Anthropic 都可以通过编辑 `agent/config/llm.yaml` 来切换——**无需修改任何代码**，也没有用于切换提供方的 CLI 标志（切换提供方只能通过配置文件完成）。
+
+密钥绝不内联写入 YAML；`api_key_env` 字段指定存放密钥的环境变量名称。请精确设置该变量（在环境中或 `.env` 文件中），编辑完 `agent/config/llm.yaml` 后重启任何正在运行的 xcoder 进程。
+
+**切换到与 OpenAI 兼容的提供方（以 OpenAI 为例）：**
+
+```yaml
+provider: openai
+base_url: https://api.openai.com/v1
+endpoint: /chat/completions
+model: gpt-5
+api_key_env: OPENAI_API_KEY
+```
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+**切换到 Anthropic（忽略 `base_url` 和 `endpoint`）：**
+
+```yaml
+provider: anthropic
+model: claude-sonnet-4-5
+api_key_env: ANTHROPIC_API_KEY
+```
+
+```env
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+```
+
+路由规则：
+
+1. 显式 `base_url` 始终优先于内置注册表。
+2. 省略 `base_url` 时，使用已知提供方的注册表 URL（`deepseek`、`openai`、`openrouter`、`groq`、`ollama`）。
+3. 省略 `endpoint` 时默认为 `/chat/completions`。
+4. `anthropic` 会忽略 `base_url` 和 `endpoint`。
+
+> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` 是旧版变量，xcoder **不会读取**它们。
 
 ## 数据库初始化
 

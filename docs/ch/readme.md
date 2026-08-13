@@ -1,7 +1,7 @@
-<!-- ronin:version 1 | ronin:task task-5e8fe0 | ronin:updated 2026-08-11T16:38:23.826Z | ronin:subtask code-st-be6a3a -->
+<!-- ronin:version 2 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:17:44.147Z | ronin:subtask code-st-82c66c -->
 # xcoder 概览
 
-**xcoder** 是一个用 TypeScript（Node.js）编写的 ReAct CLI 代理，内置可热插拔的角色技能，默认使用 DeepSeek 作为 LLM 提供方。本文档是简体中文文档集的入口。
+**xcoder** 是一个用 TypeScript（Node.js）编写的 ReAct CLI 代理，内置可热插拔的角色技能，默认使用 DeepSeek 作为 LLM 提供方。LLM 后端由配置驱动：DeepSeek 是默认提供方，任何与 OpenAI 兼容的提供方或 Anthropic 都可通过编辑 `agent/config/llm.yaml` 并设置对应的 API 密钥环境变量来选择——**无需修改任何代码**。本文档是简体中文文档集的入口。
 
 ## 概述
 

@@ -1,3 +1,4 @@
+// ronin:version 1 | ronin:task task-b88b43 | ronin:updated 2026-08-13T05:53:40.018Z | ronin:subtask code-st-5a7e6a
 import { LlmClient, LlmMessage, LlmUsage, TelemetryInterface, ToolSchema, LoadedSkill } from "../types.js";
 import { TOOL_SCHEMAS } from "../../tools/toolSchemas.js";
 import { dispatchToolCall } from "../../tools/toolDispatcher.js";
@@ -22,7 +23,7 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────────
 
 const DEFAULT_SYSTEM_PROMPT = `You are xcoder, a ReAct CLI agent. You have tools for searching the workspace
-(glob_tool, grep_tool, read_tool), making changes (write_edit_tool, ssh_tool, github_tool,
+(glob_tool, grep_tool, read_tool, list_directory_tool, find_files_tool, search_code_tool, search_ast_tool, get_dependency_graph_tool), making changes (write_edit_tool, ssh_tool, github_tool,
 docker_deploy_ssh_tool, schedule_task_tool), validating your work (run_command_tool,
 playwright_run_tool), and delegating isolated sub-tasks (subagent_tool). Follow the ReAct
 pattern: search for context before editing, and always validate your changes before

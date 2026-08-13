@@ -1,4 +1,4 @@
-<!-- ronin:version 1 | ronin:task task-eedb5e | ronin:updated 2026-08-11T16:15:06.365Z | ronin:subtask code-st-7639c0 -->
+<!-- ronin:version 2 | ronin:task task-d8bbc5 | ronin:updated 2026-08-13T07:22:57.680Z | ronin:subtask code-st-db60d1 -->
 # xcoder — Usage
 
 How to invoke the xcoder CLI, run tasks, drive the API server and UI, select an orchestration engine, and run tests.
@@ -122,6 +122,34 @@ xcoder --engine <name> --task "List all TypeScript files in src/"
 | **SwarmEngine** | `swarm` | Parallel swarm orchestration with WBS decomposition and concurrent agent dispatch |
 
 Engines are registered in `src/core/engine/EngineRegistry.ts` via a factory pattern. New implementations can be added with `registerEngine("name", factory)` — no CLI or API changes required.
+
+## LLM Provider Selection
+
+xcoder's LLM backend is config-driven and provider-agnostic. **DeepSeek is the default**;
+any OpenAI-compatible provider (OpenAI, OpenRouter, Groq, Ollama, a company proxy, …) and
+Anthropic are switchable through `agent/config/llm.yaml` + one API key env var — no code
+changes and no CLI flag. Keys are never inlined in yaml: `api_key_env` names the environment
+variable holding the key.
+
+```yaml
+# agent/config/llm.yaml — OpenAI-compatible example
+provider: openai
+base_url: https://api.openai.com/v1        # explicit base_url always wins; omit for known providers
+endpoint: /chat/completions                # defaults to /chat/completions when omitted
+model: gpt-5
+api_key_env: OPENAI_API_KEY
+```
+
+```yaml
+# agent/config/llm.yaml — Anthropic example (base_url/endpoint unused; fixed Messages API URL)
+provider: anthropic
+model: claude-sonnet-4-5
+api_key_env: ANTHROPIC_API_KEY
+```
+
+Known providers with built-in URL registrations: `deepseek` (`https://api.deepseek.com/v1`),
+`openai` (`https://api.openai.com/v1`), `openrouter` (`https://openrouter.ai/api/v1`),
+`groq` (`https://api.groq.com/openai/v1`), `ollama` (`http://localhost:11434/v1`).
 
 ## Testing
 
