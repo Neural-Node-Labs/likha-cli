@@ -1,3 +1,4 @@
+# ronin:version 1 | ronin:task task-d8bbc5 | ronin:updated 2026-08-13T07:22:22.247Z | ronin:subtask code-st-db60d1
 # xcoder/agent/config/llm.yaml
 # LLM backend configuration for the xcoder agent.
 # Swappable provider — this sets DeepSeek as the active backend.
@@ -39,6 +40,31 @@
 # needs single-call writes larger than ~57KB, raise this value -- but prefer teaching the model
 # to write large files as multiple mode='edit' appends over reserving a bigger ceiling that
 # costs context budget on every single request regardless of whether that file is being touched.
+#
+# ─── Switching providers ────────────────────────────────────────────────────────
+# The active backend is whatever `provider` says here — DeepSeek is the default, but any
+# OpenAI-compatible provider (openai, openrouter, groq, ollama, or a custom one) and
+# Anthropic can be selected by editing this file + setting one API key env var. No code
+# changes needed.
+#
+# OpenAI-compatible (explicit base_url/endpoint always win):
+#   provider: openai
+#   base_url: https://api.openai.com/v1
+#   endpoint: /chat/completions
+#   model: gpt-5
+#   api_key_env: OPENAI_API_KEY
+#
+# OpenAI-compatible using the known-provider URL registry (base_url/endpoint omitted):
+#   provider: openrouter
+#   model: anthropic/claude-sonnet-4-5
+#   api_key_env: OPENROUTER_API_KEY
+#
+# Anthropic (fixed Messages API URL; base_url/endpoint are ignored):
+#   provider: anthropic
+#   model: claude-sonnet-4-5
+#   api_key_env: ANTHROPIC_API_KEY
+#
+# Keys are never inlined here — `api_key_env` names the environment variable holding the key.
 provider: deepseek
 base_url: https://api.deepseek.com/v1
 endpoint: /chat/completions

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ronin:version 4 | ronin:task task-bc7d1e | ronin:updated 2026-08-13T07:33:45.044Z | ronin:subtask code-st-2ad77b
 import { Command } from "commander";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
@@ -19,7 +20,7 @@ import { dockerComposeUp } from "../tools/dockerComposeDeployTool.js";
 import { deployWorkspaceViaSsh } from "../tools/dockerDeploySshTool.js";
 import { initializeDatabase } from "../db/initialize.js";
 import { installProcessCrashHandler } from "../core/processCrashHandler.js";
-import { runPurge, type PurgeScope } from "./purge.js";
+import { runPurgeCommand, registerPurgeSubcommand } from "./purgeCommand.js";
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -39,6 +40,8 @@ installProcessCrashHandler(process.cwd());
 
 const program = new Command();
 program.name("xcoder").description("xcoder — ReAct CLI agent with hot-pluggable role skills").version("0.1.0");
+program.showHelpAfterError();
+registerPurgeSubcommand(program);
 
 program
   .argument("[task]", "task description — equivalent to --task <description>")
@@ -68,7 +71,7 @@ program
   .option("--remote-path <path>", "remote directory path for deployment (default: /opt/xcoder)")
   .option("--engine <name>", `orchestration engine to use (default: "${DEFAULT_ENGINE}"). Registered engines: ${listEngines().join(", ")}. See src/core/engine/EngineRegistry.ts to register another implementation.`, DEFAULT_ENGINE)
   .option("--initialize-db", "initialize the SQLite database (create tables, run migrations). Idempotent — safe to run multiple times.")
-  .option("--purge", "remove agent-internal metadata and generated artifacts (.agent/, .log/, tasks/) from the workspace")
+  .option("--purge", "remove agent-internal metadata and generated artifacts (.agent/, .log/, tasks/) from the workspace (see also `xcoder purge --help`)")
   .option("--purge-scope <scope>", "scope for --purge: 'workspace' (default) or 'global' (os.homedir())")
   .option("--purge-targets <list>", "comma-separated subset of targets to purge (default: .agent,.log,tasks)")
   .option("--purge-dry-run", "with --purge: print what would be removed without deleting anything")
@@ -99,39 +102,18 @@ program
     }
 
     // ─── Purge ─────────────────────────────────────────────────────────────
+    // Both spellings (“xcoder purge” and “xcoder --purge”) go through the same
+    // shared handler so the legacy flag cannot drift from the subcommand.
     if (opts.purge) {
-      const scope: PurgeScope = opts.purgeScope === "global" ? "global" : "workspace";
-      const targets = opts.purgeTargets
-        ? String(opts.purgeTargets).split(",").map((t: string) => t.trim()).filter(Boolean)
-        : undefined;
-
-      try {
-        const result = await runPurge({
-          scope,
-          dryRun: opts.purgeDryRun === true,
-          force: opts.purgeForce === true,
-          targets,
-          confirm: (message) => io.confirm(message),
-        });
-
-        const label = opts.purgeDryRun ? "[Purge] (dry-run)" : "[Purge]";
-        for (const t of result.removed) {
-          console.log(`${opts.purgeDryRun ? "🔍" : "🗑️"} ${label} ${t}`);
-        }
-        for (const t of result.skipped) {
-          console.log(`⏭️  ${label} ${t} (not found — skipped)`);
-        }
-        for (const f of result.failed) {
-          console.error(`❌ ${label} ${f.target}: ${f.error}`);
-        }
-
-        if (result.failed.length > 0) {
-          process.exit(1);
-        }
-      } catch (err) {
-        console.error(`❌ [Purge] ${err instanceof Error ? err.message : String(err)}`);
-        process.exit(1);
-      }
+      const outcome = await runPurgeCommand({
+        scope: opts.purgeScope === "global" ? "global" : "workspace",
+        targets: opts.purgeTargets ? String(opts.purgeTargets) : undefined,
+        dryRun: opts.purgeDryRun === true,
+        force: opts.purgeForce === true,
+        auto: opts.auto === true,
+        cwd: process.cwd(),
+      });
+      if (outcome.exitCode !== 0) process.exit(outcome.exitCode);
       return;
     }
 

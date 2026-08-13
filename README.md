@@ -1,3 +1,4 @@
+<!-- ronin:version 1 | ronin:task task-d8bbc5 | ronin:updated 2026-08-13T07:22:49.286Z | ronin:subtask code-st-db60d1 -->
 # xcoder
 
 **xcoder** — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.
@@ -675,11 +676,15 @@ The `OrchestratorOptions` interface (defined in `src/core/orchestrator.ts`) cont
 
 ### Environment Variables
 
+```env
+DEEPSEEK_API_KEY=sk-your-key-here
+# ANTHROPIC_API_KEY=sk-ant-your-key-here   # fallback or provider switch (llm.yaml)
+```
+
 | Variable | Description |
 |----------|-------------|
-| `DEEPSEEK_API_KEY` | DeepSeek API key (required) |
-| `DEEPSEEK_BASE_URL` | DeepSeek API base URL |
-| `DEEPSEEK_MODEL` | Model name (default: `deepseek-chat`) |
+| `DEEPSEEK_API_KEY` | DeepSeek API key (default provider — required for default runs) |
+| `ANTHROPIC_API_KEY` | Anthropic API key (fallback/provider switch example; `api_key_env` in `llm.yaml` names whatever var any provider needs) |
 | `MAX_ITERATIONS` | Override max iterations |
 | `XCODER_API_PORT` | API server port |
 | `XCODER_API_HOST` | API server host |
@@ -690,6 +695,48 @@ The `OrchestratorOptions` interface (defined in `src/core/orchestrator.ts`) cont
 | `XCODER_SSH_USER` | Fleet SSH user |
 | `XCODER_SSH_PASSWORD` | Fleet SSH password |
 | `GITHUB_TOKEN` | GitHub token for git operations |
+
+> The legacy `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` env vars are **not read** by xcoder.
+> Provider, base URL, endpoint, and model are configured in `agent/config/llm.yaml` — see below.
+
+### LLM Providers
+
+xcoder's LLM backend is config-driven and provider-agnostic. **DeepSeek is the default**,
+but any OpenAI-compatible provider (OpenAI, OpenRouter, Groq, Ollama, a company proxy, …)
+and Anthropic can be selected by editing `agent/config/llm.yaml` and setting the matching
+API key environment variable — **no code changes or CLI flags needed**.
+
+**Switch to another OpenAI-compatible provider:**
+
+```yaml
+provider: openai            # any name; "deepseek", "openai", "openrouter", "groq", "ollama" have registry URLs
+base_url: https://api.openai.com/v1   # explicit base_url always wins; omit to use the registry
+endpoint: /chat/completions           # defaults to /chat/completions when omitted
+model: gpt-5
+api_key_env: OPENAI_API_KEY
+```
+
+Known providers with built-in URL registrations (explicit `base_url` always wins):
+
+| Provider | Default base URL |
+|---|---|
+| `deepseek` | `https://api.deepseek.com/v1` |
+| `openai` | `https://api.openai.com/v1` |
+| `openrouter` | `https://openrouter.ai/api/v1` |
+| `groq` | `https://api.groq.com/openai/v1` |
+| `ollama` | `http://localhost:11434/v1` |
+
+**Switch to Anthropic:**
+
+```yaml
+provider: anthropic
+model: claude-sonnet-4-5
+api_key_env: ANTHROPIC_API_KEY
+```
+
+Per-provider env var: set exactly the variable named by your `api_key_env` (e.g.
+`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, or a custom
+name in your `.env`).
 
 ---
 

@@ -1,4 +1,4 @@
-<!-- ronin:version 1 | ronin:task task-b88b43 | ronin:updated 2026-08-13T06:32:32.604Z | ronin:subtask document-st-ae31dd -->
+<!-- ronin:version 2 | ronin:task task-bc7d1e | ronin:updated 2026-08-13T07:43:54.695Z | ronin:subtask document-st-2b7ee2 -->
 # Refactor summary
 
 Addresses the 4 points you gave, on top of `xcoder-production-review.md`.
@@ -312,4 +312,52 @@ shipped them as real tools.
   and `.ronin/defects/defect0001.md` / `defect0002.md` if desired.
 - Remove the `"regression"` script and `ts-morph` from `package.json`.
 - `tmp/efficient-filesystem-agent-blueprint.md` is inert documentation and can stay.
+
+---
+
+# Update: purge command — fixed and boundary-tested
+
+## Why
+
+Purge previously only existed as legacy `--purge` flags on the root command and was not covered
+by tests that exercised real command dispatch; the literal token `purge` could fall through to
+the parent `[task]` positional instead of running the purge, which made the command look
+"not working". The fix makes purge a first-class `xcoder purge` subcommand registered **before**
+the `[task]` positional, routes both spellings through one shared handler so they cannot drift,
+and locks the behavior down with a Windows-safe boundary test suite.
+
+## What changed
+
+- `src/cli/purge.ts` — core purge engine. Removes exactly the allow-listed directories
+  `.agent/`, `.log/`, `tasks/` (a deliberate subset of `EXCLUDED` in
+  `src/core/workspaceManager.ts`); refuses paths that resolve outside the scope root; refuses
+  symlinks unless `--force` (which removes the link, never the referent); tolerates missing
+  targets as a no-op; reports `removed`/`skipped`/`failed` per target.
+- `src/cli/purgeCommand.ts` — single shared handler for both the `xcoder purge` subcommand and
+  the legacy `xcoder --purge [...]` flags. Non-TTY runs auto-approve; `--auto` approves
+  explicitly; `--dry-run` never prompts or deletes.
+- `src/cli/index.ts` — registers the purge subcommand before the parent `[task]` positional
+  (so the bare token `purge` routes to purge, while `xcoder "purge my sticky notes"` still goes
+  to the ReAct path) and handles `opts.purge` before task dispatch, exiting 1 on failure.
+- `src/cli/__tests__/purgeCommand.boundary.test.ts` — new: 10 boundary tests covering
+  whitespace-padded `--targets` normalization, non-TTY auto-approval, dry-run symlink refusal,
+  single-target purge, dry-run no-delete, subcommand routing (including multi-word task
+  passthrough), invalid-target exit code, and `showHelpAfterError`.
+
+## Verified
+
+- `npx vitest run --config vitest.config.ts src/cli` → 3 test files, 31 tests passed, exit 0
+  (389 ms).
+- Windows note (filed as defect0001): the quoted-glob form `"src/cli/**/*.test.ts"` fails on
+  Windows with `No test files found`; use the directory-positional form `src/cli` shown above.
+
+## Rollback
+
+- Revert the CLI wiring: `git checkout -- src/cli/index.ts`.
+- If the refactor was never committed, delete the new files: `src/cli/purge.ts`,
+  `src/cli/purgeCommand.ts`, `src/cli/__tests__/purgeCommand.boundary.test.ts` (and optionally
+  `.ronin/defects/defect0001.md`, the `.ronin/blueprint.md` update, and this entry).
+- After any rollback, re-run `npx vitest run --config vitest.config.ts src/cli` — the legacy
+  `--purge` behavior should be back to its pre-fix state with the pre-existing `purge.test.ts`
+  / `purgeCommand.test.ts` still passing.
 

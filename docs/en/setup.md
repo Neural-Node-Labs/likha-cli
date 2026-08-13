@@ -1,4 +1,4 @@
-<!-- ronin:version 1 | ronin:task task-eedb5e | ronin:updated 2026-08-11T16:14:57.537Z | ronin:subtask code-st-7639c0 -->
+<!-- ronin:version 2 | ronin:task task-d8bbc5 | ronin:updated 2026-08-13T07:22:52.867Z | ronin:subtask code-st-db60d1 -->
 # xcoder — Setup
 
 How to install xcoder, configure its environment, initialize the database, and set up a development workflow.
@@ -37,10 +37,19 @@ The following environment variables are supported:
 
 | Variable | Purpose |
 |---|---|
-| `DEEPSEEK_API_KEY` | DeepSeek API key (required for real LLM runs) |
-| `DEEPSEEK_BASE_URL` | DeepSeek API base URL |
-| `DEEPSEEK_MODEL` | Model name (default: `deepseek-chat`) |
-| `ANTHROPIC_API_KEY` | Optional fallback provider, used if DeepSeek is unreachable/unset |
+| `DEEPSEEK_API_KEY` | DeepSeek API key (default provider — required for default runs) |
+| `ANTHROPIC_API_KEY` | Anthropic API key — fallback, or switch by setting `provider: anthropic` in `agent/config/llm.yaml` |
+
+> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` are legacy and **not read** by xcoder. The active
+> provider, base URL, endpoint, and model all live in `agent/config/llm.yaml`.
+
+### LLM Providers
+
+xcoder's LLM backend is config-driven: **DeepSeek is the default**, but any OpenAI-compatible
+provider and Anthropic are switchable via `agent/config/llm.yaml` + one API key env var — no
+code changes. See the README's [Configuration](#configuration) section for the provider-switch
+examples (`openai`, `openrouter`, `groq`, `ollama`, `anthropic`, or any custom name with an
+explicit `base_url`/`endpoint`).
 | `GITHUB_TOKEN` | Token for `github_tool` HTTPS auth (clone/fetch/pull/push); passed as an in-memory auth header only |
 | `XCODER_API_KEY` | API server bearer-token auth; if unset the API runs without authentication |
 | `XCODER_API_PORT` | API server port (default: 3001) |
