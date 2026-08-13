@@ -1,3 +1,4 @@
+// ronin:version 1 | ronin:task task-4508cb | ronin:updated 2026-08-13T15:56:13.153Z | ronin:subtask test-st-ec8121
 import { describe, it, expect, vi } from "vitest";
 import { ReActOrchestrator } from "../orchestrator.js";
 import { LlmClient, LlmResponse, LlmUsage, TelemetryInterface, ToolCall } from "../types.js";
@@ -68,6 +69,7 @@ describe("ReActOrchestrator maxIterations default", () => {
     let limitReachedAt = -1;
     const orchestrator = new ReActOrchestrator(llm, telemetry, {
       maxIterations: 3,
+      planMode: "never",
       validateGoal: false,
       consoleThoughts: false,
       onIterationLimitReached: async (_task, iteration) => {
