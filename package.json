@@ -1,6 +1,6 @@
 {
   "name": "xcoder",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "xcoder — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.",
   "license": "MIT",
   "type": "module",
