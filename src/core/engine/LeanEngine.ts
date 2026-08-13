@@ -1,3 +1,4 @@
+// ronin:version 2 | ronin:task task-b88b43 | ronin:updated 2026-08-13T05:53:55.005Z | ronin:subtask code-st-5a7e6a
 import { LlmClient, LlmMessage, LlmUsage, TelemetryInterface, ToolSchema, ToolCall, LoadedSkill, ReActStep, Phase } from "../types.js";
 import { TOOL_SCHEMAS } from "../../tools/toolSchemas.js";
 import { dispatchToolCall } from "../../tools/toolDispatcher.js";
@@ -23,7 +24,7 @@ import {
 
 // ─── Constants ────────────────────────────────────────────────────────────────────
 
-const READ_ONLY_TOOLS = new Set(["glob_tool", "grep_tool", "read_tool"]);
+const READ_ONLY_TOOLS = new Set(["glob_tool", "grep_tool", "read_tool", "list_directory_tool", "find_files_tool", "get_dependency_graph_tool", "search_code_tool", "search_ast_tool", "read_outline_tool", "read_file_range_tool", "read_multiple_files_tool", "read_full_file_tool", "git_diff_tool", "git_log_tool", "validate_file_tool"]);
 const ACTION_TOOLS = new Set(["write_edit_tool", "ssh_tool", "schedule_task_tool", "docker_deploy_ssh_tool"]);
 const VALIDATION_TOOLS = new Set(["playwright_run_tool"]);
 const GITHUB_READ_ACTIONS = new Set(["clone", "fetch", "pull", "status"]);
@@ -464,7 +465,7 @@ export class LeanEngine implements IReactEngine, IReactEngineV2 {
   private buildSystemPrompt(skills: LoadedSkill[]): string {
     const protocol = buildProtocolPrompt(this.cwd);
 
-const base = `You are xcoder, a ReAct CLI agent. You have tools for searching the workspace (glob_tool, grep_tool, read_tool), making changes (write_edit_tool, ssh_tool, github_tool, docker_deploy_ssh_tool, schedule_task_tool), validating your work (run_command_tool, playwright_run_tool), and delegating isolated sub-tasks (subagent_tool). Follow the ReAct pattern: search for context before editing, and always validate your changes before considering a task done. Stop calling tools once the task is verified complete, and summarize what you did.
+const base = `You are xcoder, a ReAct CLI agent. You have tools for searching the workspace (glob_tool, grep_tool, read_tool, list_directory_tool, find_files_tool, search_code_tool, search_ast_tool, get_dependency_graph_tool), making changes (write_edit_tool, ssh_tool, github_tool, docker_deploy_ssh_tool, schedule_task_tool), validating your work (run_command_tool, playwright_run_tool), and delegating isolated sub-tasks (subagent_tool). Follow the ReAct pattern: search for context before editing, and always validate your changes before considering a task done. Stop calling tools once the task is verified complete, and summarize what you did.
 
 A workspace snapshot (file tree, tech stack, git status, package manifest) was already refreshed and is included below as ### Workspace context — you don't need to call workspace_info_tool just to see it. Only call workspace_info_tool(refresh=true) if that snapshot goes stale mid-task (after installing a dependency, creating/deleting files, or switching branches).
 

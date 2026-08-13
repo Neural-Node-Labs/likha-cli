@@ -1,3 +1,4 @@
+// ronin:version 5 | ronin:task task-b88b43 | ronin:updated 2026-08-13T06:17:34.564Z | ronin:subtask test-st-eaae62
 /**
  * processCrashHandler.ts — Top-level process crash handler for the main agent.
  *
@@ -35,6 +36,10 @@ let installed = false;
 
 /** Timestamp of the last crash event — used for debounce. */
 let lastCrashTime = 0;
+
+/** References to the registered handlers so reset can remove them. */
+let uncaughtHandler: ((err: Error) => void) | undefined;
+let unhandledHandler: ((reason: unknown) => void) | undefined;
 
 /** Debounce interval in milliseconds — prevents rapid re-entry from cascading errors. */
 const DEBOUNCE_MS = 1_000;
@@ -185,7 +190,7 @@ export function installProcessCrashHandler(workspaceRoot?: string): void {
   const root = workspaceRoot ?? process.cwd();
 
   // ── uncaughtException handler ──────────────────────────────────────────────
-  process.on("uncaughtException", (err: Error) => {
+  uncaughtHandler = (err: Error) => {
     const now = Date.now();
 
     // Debounce: if the last crash was less than DEBOUNCE_MS ago, skip
@@ -214,10 +219,10 @@ export function installProcessCrashHandler(workspaceRoot?: string): void {
     // cause infinite restart loops, and lose the original error context.
     // The user should inspect the crash report and fix the underlying issue.
     process.exit(1);
-  });
+  };
 
   // ── unhandledRejection handler ─────────────────────────────────────────────
-  process.on("unhandledRejection", (reason: unknown) => {
+  unhandledHandler = (reason: unknown) => {
     const now = Date.now();
 
     // Debounce: if the last crash was less than DEBOUNCE_MS ago, skip
@@ -251,7 +256,10 @@ export function installProcessCrashHandler(workspaceRoot?: string): void {
 
     // Exit with non-zero code — NO restart/retry logic (same rationale as above)
     process.exit(1);
-  });
+  };
+
+  process.on("uncaughtException", uncaughtHandler);
+  process.on("unhandledRejection", unhandledHandler);
 }
 
 /**
@@ -269,4 +277,12 @@ export function isCrashHandlerInstalled(): boolean {
 export function resetCrashHandlerState(): void {
   installed = false;
   lastCrashTime = 0;
+  if (uncaughtHandler) {
+    process.removeListener("uncaughtException", uncaughtHandler);
+    uncaughtHandler = undefined;
+  }
+  if (unhandledHandler) {
+    process.removeListener("unhandledRejection", unhandledHandler);
+    unhandledHandler = undefined;
+  }
 }
