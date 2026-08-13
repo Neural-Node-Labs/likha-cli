@@ -1,7 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const IGNORE_FILES = [".agent/.agentignore", ".gitignore", ".dockerignore"];
+// NOTE: .dockerignore is intentionally NOT merged here. Its rules describe what to
+// exclude from the Docker *build context* (docs/, *.md, scripts/, migrations/, test
+// suites, etc.), not what is "not part of the project". Applying them to workspace
+// indexing would wrongly exclude source .md files (including every SKILL.md) and other
+// files the agent needs. .gitignore is the authoritative source for "not part of the
+// project"; .agent/.agentignore is the agent-specific override.
+const IGNORE_FILES = [".agent/.agentignore", ".gitignore"];
 const ALWAYS_IGNORE = ["**/node_modules/**", ".git/**", "dist/**", ".agent/index/**", ".log/**"];
 
 /**

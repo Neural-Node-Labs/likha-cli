@@ -493,8 +493,11 @@ export class SwarmEngine implements IReactEngine, IReactEngineV2 {
       this.transition({ phase: "completed", task: taskDescription, outcome: this.lastOutcome });
     }
 
-    if (this.opts.consoleThoughts !== false && this.health.scores.length > 0) {
-      this.io.log(`📈 Final health score: ${this.getHealthScore()}/100 (${this.health.scores.length} scored steps)`);
+    if (this.opts.consoleThoughts !== false) {
+      this.io.totalUsage(this.cumulativeUsage, this.llmCallCount);
+      if (this.health.scores.length > 0) {
+        this.io.log(`📈 Final health score: ${this.getHealthScore()}/100 (${this.health.scores.length} scored steps)`);
+      }
     }
 
     return finalContent;

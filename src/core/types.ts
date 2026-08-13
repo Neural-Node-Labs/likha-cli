@@ -149,8 +149,10 @@ export interface IndexEntry {
   filepath: string;
   fileVersion: string;
   dumpFile: string;
-  startLine: number;
-  endLine: number;
+  /** Byte offset (inclusive) of the file's content within the dump file. */
+  startByte: number;
+  /** Byte offset (exclusive) of the file's content within the dump file. */
+  endByte: number;
 }
 
 /**
