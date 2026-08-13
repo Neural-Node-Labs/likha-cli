@@ -417,7 +417,7 @@ export class ReActOrchestrator implements IReactEngine {
     }
 
     const skills = this.selectSkills(taskDescription);
-    const maxIterations = this.opts.maxIterations ?? 20;
+    const maxIterations = this.opts.maxIterations ?? 50;
 
     const indent = this.opts.consoleIndent ?? 0;
     const headerPrefix = indent > 0 ? "  ".repeat(indent) : "";
