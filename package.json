@@ -1,19 +1,20 @@
 {
-  "name": "xcoder",
+  "name": "likha",
   "version": "1.0.0",
-  "description": "xcoder — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.",
+  "description": "likha — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.",
   "license": "MIT",
   "type": "module",
   "bin": {
+    "likha": "dist/cli/index.js",
     "xcoder": "dist/cli/index.js"
   },
   "scripts": {
-    "xcoder:link": "npm link",
-    "xcoder:unlink": "npm unlink -g xcoder",
-    "xcoder:install": "npm install && npm install --prefix ui",
-    "xcoder:build": "npm run build && npm run build --prefix ui",
-    "xcoder:ui": "concurrently \"node dist/cli/index.js --serve --port 3001\" \"npm run dev --prefix ui\"",
-    "xcoder:api": "node dist/cli/index.js --serve --port 3001",
+    "likha:link": "npm link",
+    "likha:unlink": "npm unlink -g likha",
+    "likha:install": "npm install && npm install --prefix ui",
+    "likha:build": "npm run build && npm run build --prefix ui",
+    "likha:ui": "concurrently \"node dist/cli/index.js --serve --port 3001\" \"npm run dev --prefix ui\"",
+    "likha:api": "node dist/cli/index.js --serve --port 3001",
     "build": "tsc -p tsconfig.json && node -e \"fs.cpSync('agent', 'dist/config/agent', { recursive: true })\"",
     "start": "node dist/cli/index.js",
     "dev": "ts-node --esm src/cli/index.ts",
