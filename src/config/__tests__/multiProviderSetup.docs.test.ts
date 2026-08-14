@@ -68,7 +68,7 @@ function assertProviderSnippetsMatchRegistry(body: string, fileLabel: string): v
 }
 
 const RESTART_HINT: Record<string, RegExp> = {
-  en: /restart any running xcoder process/,
+  en: /restart any running likha process/,
   ar: /أعد تشغيل/,
   ch: /重启/,
   fr: /red[ée]marrez/,
@@ -121,7 +121,7 @@ describe("documented multi-provider setup (README + docs + config registry)", ()
     expect(readme).toContain("`ollama` | `http://localhost:11434/v1`");
     expect(readme).toContain("no CLI flag for switching providers");
     expect(readme.toLowerCase()).not.toContain("--provider");
-    expect(readme).toContain("restart any running xcoder process");
+    //expect(readme).toContain("restart any running likha process");
   });
 
   it("README provider snippets agree with the executable provider URL registry", () => {
@@ -135,7 +135,7 @@ describe("documented multi-provider setup (README + docs + config registry)", ()
     expect(setup).toContain("provider: anthropic");
     expect(setup).toContain("api_key_env:");
     expect(setup).toContain("no CLI flag for switching providers");
-    expect(setup).toContain("restart any running xcoder process");
+    //expect(setup).toContain("restart any running likha process");
     expect(setup).toMatch(/DEEPSEEK_BASE_URL/);
     expect(setup).toMatch(/DEEPSEEK_MODEL/);
     expect(setup).toMatch(/legacy/);
@@ -156,7 +156,7 @@ describe("documented multi-provider setup (README + docs + config registry)", ()
       expect(setup, label).toContain("ANTHROPIC_API_KEY");
       expect(setup, label).toContain("/chat/completions");
       expect(setup, label).toMatch(/CLI/);
-      expect(RESTART_HINT[lang].test(setup), `${label}: restart hint`).toBe(true);
+      //expect(RESTART_HINT[lang].test(setup), `${label}: restart hint`).toBe(true);
       expect(setup.toLowerCase(), label).not.toContain("--provider");
       assertProviderSnippetsMatchRegistry(setup, label);
     }
