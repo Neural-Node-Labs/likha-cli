@@ -39,7 +39,7 @@ import os from "node:os";
 installProcessCrashHandler(process.cwd());
 
 const program = new Command();
-program.name("xcoder").description("xcoder — ReAct CLI agent with hot-pluggable role skills").version("0.1.0");
+program.name("likha").description("likha — ReAct CLI agent with hot-pluggable role skills").version("0.1.0");
 program.showHelpAfterError();
 registerPurgeSubcommand(program);
 
@@ -60,8 +60,8 @@ program
   .option("--audit-out <path>", "where to write the audit report markdown (default: reports/react-audit-<timestamp>.md)")
   .option("--diagnose-live", "run the 7-point ReAct diagnostic suite against the real configured LLM: iteration stopping, restart-approval, duplicate-action avoidance, tool/skill usage, ground-up deployable app, bug fixing, and full SDLC")
   .option("--diagnose-out <path>", "where to write the live diagnostics report markdown (default: reports/live-diagnostics-<timestamp>.md)")
-  .option("--serve", "start the xcoder HTTP API server")
-  .option("--ui", "start both the xcoder HTTP API server and the UI frontend")
+  .option("--serve", "start the likha HTTP API server")
+  .option("--ui", "start both the likha HTTP API server and the UI frontend")
   .option("--port <number>", "port for the API server (default: 3001)", parseInt)
   .option("--host <address>", "host for the API server (default: 0.0.0.0)")
   .option("--deploy", "trigger deploy mode — runs docker compose up -d --build")
@@ -79,7 +79,7 @@ program
   .option("--brain", "use the BrainEngine — routes a task across >=2 roles via the shared MultiRoleRouter (equivalent to --engine brain)")
   .option("--procedure", "use the ProcedureEngine — two-step procedure generation plus local step execution (equivalent to --engine procedure)")
   .option("--initialize-db", "initialize the SQLite database (create tables, run migrations). Idempotent — safe to run multiple times.")
-  .option("--purge", "remove agent-internal metadata and generated artifacts (.agent/, .log/, tasks/) from the workspace (see also `xcoder purge --help`)")
+  .option("--purge", "remove agent-internal metadata and generated artifacts (.agent/, .log/, tasks/) from the workspace (see also `likha purge --help`)")
   .option("--purge-scope <scope>", "scope for --purge: 'workspace' (default) or 'global' (os.homedir())")
   .option("--purge-targets <list>", "comma-separated subset of targets to purge (default: .agent,.log,tasks)")
   .option("--purge-dry-run", "with --purge: print what would be removed without deleting anything")
@@ -110,7 +110,7 @@ program
     }
 
     // ─── Purge ─────────────────────────────────────────────────────────────
-    // Both spellings (“xcoder purge” and “xcoder --purge”) go through the same
+    // Both spellings (“likha purge” and “likha --purge”) go through the same
     // shared handler so the legacy flag cannot drift from the subcommand.
     if (opts.purge) {
       const outcome = await runPurgeCommand({
@@ -199,13 +199,13 @@ program
       const port = opts.port || 3001;
       const host = opts.host || "0.0.0.0";
 
-      console.log("🚀 Starting xcoder API server and UI frontend...\n");
+      console.log("🚀 Starting likha API server and UI frontend...\n");
 
       // 1. Start the API server
       startApiServer({ port, host });
 
       // 2. Resolve UI path (assuming UI package/folder is in 'ui' or root)
-      const uiDir = path.resolve(cwd, "ui"); // adjust path to where xcoder-ui lives
+      const uiDir = path.resolve(cwd, "ui"); // adjust path to where likha-ui lives
 
       if (!fs.existsSync(uiDir)) {
         console.error(`❌ UI directory not found at: ${uiDir}`);
@@ -239,8 +239,8 @@ program
 
     // ─── Deploy Mode ────────────────────────────────────────────────────────
     // Usage:
-    //   Local:  xcoder --deploy --docker --llm true|false
-    //   Remote: xcoder --deploy --docker --remote <ip> [--llm true|false]
+    //   Local:  likha --deploy --docker --llm true|false
+    //   Remote: likha --deploy --docker --remote <ip> [--llm true|false]
     //
     //   --llm true  → send the deploy task to the LLM as a devops task (resolves issues)
     //   --llm false → execute deploy directly
@@ -266,7 +266,7 @@ program
           const engine = createEngine(engineName, { llm, telemetry, io, options: { cwd, planMode: "always" } });
           console.log(`🚀 Remote deploy mode: sending to LLM as devops task (target: ${remoteHost})...\n`);
           await engine.run(
-            `Deploy the xcoder stack to remote host ${remoteHost} via SSH. ` +
+            `Deploy the likha stack to remote host ${remoteHost} via SSH. ` +
             `Use the docker_deploy_ssh_tool with host="${remoteHost}", user="${remoteUser}", ` +
             `passwordEnvVar="REMOTE_SSH_PASSWORD", remotePath="${remotePath}". ` +
             `If the build or deployment fails, diagnose and fix any issues. ` +
@@ -304,7 +304,7 @@ program
         const engine = createEngine(engineName, { llm, telemetry, io, options: { cwd, planMode: "always" } });
         console.log("🚀 Deploy mode: sending to LLM as devops task...\n");
         await engine.run(
-          "Deploy the xcoder stack using docker compose. " +
+          "Deploy the likha stack using docker compose. " +
           "Run `docker compose up -d --build` in the project root. " +
           "If the build or deployment fails, diagnose and fix any issues. " +
           "Verify all containers are healthy after deployment. " +
@@ -353,7 +353,7 @@ program
 
 async function chatLoop(engine: IReactEngine): Promise<void> {
   const rl = readline.createInterface({ input, output });
-  console.log("xcoder chat mode. Type 'quit', 'exit', or 'bye' to leave.");
+  console.log("likha chat mode. Type 'quit', 'exit', or 'bye' to leave.");
 
   while (true) {
     const line = await rl.question("\n> ");
