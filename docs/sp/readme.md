@@ -1,11 +1,11 @@
 <!-- ronin:version 2 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:17:53.918Z | ronin:subtask code-st-82c66c -->
-# likha — Resumen
+# xcoder — Resumen
 
-**likha** es un agente CLI ReAct escrito en TypeScript para Node.js. Combina el bucle ReAct (razonamiento + acción) con habilidades de rol conectables en caliente y usa DeepSeek como proveedor LLM predeterminado. El backend LLM se controla por configuración: DeepSeek es el proveedor predeterminado, y cualquier proveedor compatible con OpenAI o Anthropic se puede seleccionar mediante `agent/config/llm.yaml` más una variable de entorno para la clave API — **sin cambios de código**. Este documento es el punto de entrada del conjunto de documentación en español.
+**xcoder** es un agente CLI ReAct escrito en TypeScript para Node.js. Combina el bucle ReAct (razonamiento + acción) con habilidades de rol conectables en caliente y usa DeepSeek como proveedor LLM predeterminado. El backend LLM se controla por configuración: DeepSeek es el proveedor predeterminado, y cualquier proveedor compatible con OpenAI o Anthropic se puede seleccionar mediante `agent/config/llm.yaml` más una variable de entorno para la clave API — **sin cambios de código**. Este documento es el punto de entrada del conjunto de documentación en español.
 
 ## Resumen
 
-likha es un agente CLI que sigue el patrón **ReAct**: piensa de forma iterativa sobre la tarea, llama a herramientas para recopilar información o hacer cambios, observa los resultados y repite hasta completar la tarea. Admite múltiples motores de orquestación, directivas de habilidades conectables en caliente, planificación por fases, un servidor HTTP API, una interfaz React y un mecanismo de autocuración integrado que detecta cuando el agente está atascado.
+xcoder es un agente CLI que sigue el patrón **ReAct**: piensa de forma iterativa sobre la tarea, llama a herramientas para recopilar información o hacer cambios, observa los resultados y repite hasta completar la tarea. Admite múltiples motores de orquestación, directivas de habilidades conectables en caliente, planificación por fases, un servidor HTTP API, una interfaz React y un mecanismo de autocuración integrado que detecta cuando el agente está atascado.
 
 La versión 0.2.0 incluye ocho motores de orquestación intercambiables (`react` por defecto, `lean`, `simple`, `swarm`, `langgraph`, `agentic`, `brain`, `procedure`) y más de 30 habilidades especializadas cargadas desde `agent/skills/`.
 
@@ -25,7 +25,7 @@ La versión 0.2.0 incluye ocho motores de orquestación intercambiables (`react`
 Asegúrate de que `DEEPSEEK_API_KEY` esté definida en tu entorno o en un archivo `.env`, luego instala y compila:
 
 ```bash
-npm run likha:install
+npm run xcoder:install
 npm run build
 ```
 

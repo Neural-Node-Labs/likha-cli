@@ -1,11 +1,11 @@
 {
-  "name": "likha",
+  "name": "xcoder",
   "version": "0.2.0",
-  "description": "likha — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.",
+  "description": "xcoder — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "likha": "dist/cli/index.js"
+    "xcoder": "dist/cli/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

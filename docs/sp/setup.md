@@ -1,7 +1,7 @@
 <!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:51.147Z | ronin:subtask code-st-82c66c -->
-# likha — Instalación
+# xcoder — Instalación
 
-Cómo instalar likha, configurar su entorno, inicializar la base de datos y establecer un flujo de trabajo de desarrollo.
+Cómo instalar xcoder, configurar su entorno, inicializar la base de datos y establecer un flujo de trabajo de desarrollo.
 
 ## Requisitos previos
 
@@ -14,7 +14,7 @@ Cómo instalar likha, configurar su entorno, inicializar la base de datos y esta
 Instala las dependencias desde la raíz del proyecto (esto también instala las dependencias del frontend `ui/`):
 
 ```bash
-npm run likha:install
+npm run xcoder:install
 ```
 
 Luego compila las fuentes TypeScript (el script `build` también copia el directorio de configuración `agent/` a `dist/config/`):
@@ -50,7 +50,7 @@ Se admiten las siguientes variables de entorno:
 | `MAX_ITERATIONS` | Límite de iteraciones del bucle ReAct por ronda |
 | `XCODER_RESTRICT_TO_WORKSPACE` | Barrera de seguridad: rechaza rutas `read_tool`/`write_edit_tool` fuera del directorio de trabajo |
 | `DATABASE_TYPE` | Backend de base de datos: `sqlite` (predeterminado) o `postgres` |
-| `DATABASE_SQLITE_PATH` | Ruta del archivo de base de datos SQLite (predeterminado: `~/.likha/data/likha.db`) |
+| `DATABASE_SQLITE_PATH` | Ruta del archivo de base de datos SQLite (predeterminado: `~/.xcoder/data/xcoder.db`) |
 | `DATABASE_URL` | Cadena de conexión de PostgreSQL (anula los parámetros individuales siguientes) |
 | `DATABASE_HOST` | Host de PostgreSQL |
 | `DATABASE_PORT` | Puerto de PostgreSQL |
@@ -79,7 +79,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
-# DATABASE_URL=postgresql://user:pass@localhost:5432/likha
+# DATABASE_URL=postgresql://user:pass@localhost:5432/xcoder
 # REMOTE_SSH_USER=deploy
 # REMOTE_SSH_PASSWORD=your-password
 # XCODER_SSH_TARGETS=host1:22,host2:22
@@ -89,9 +89,9 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 ### Proveedores LLM
 
-El backend LLM de likha se controla por configuración: **DeepSeek es el proveedor predeterminado**, pero cualquier proveedor compatible con OpenAI (OpenAI, OpenRouter, Groq, Ollama, un proxy de empresa, …) y Anthropic se puede seleccionar editando `agent/config/llm.yaml` — **sin cambios de código** y sin una bandera CLI para cambiar de proveedor (el cambio de proveedor se realiza únicamente mediante el archivo de configuración).
+El backend LLM de xcoder se controla por configuración: **DeepSeek es el proveedor predeterminado**, pero cualquier proveedor compatible con OpenAI (OpenAI, OpenRouter, Groq, Ollama, un proxy de empresa, …) y Anthropic se puede seleccionar editando `agent/config/llm.yaml` — **sin cambios de código** y sin una bandera CLI para cambiar de proveedor (el cambio de proveedor se realiza únicamente mediante el archivo de configuración).
 
-Las claves nunca se escriben en el YAML: el campo `api_key_env` nombra la variable de entorno que contiene la clave. Define exactamente esa variable (en tu entorno o en un archivo `.env`) y, tras editar `agent/config/llm.yaml`, reinicia cualquier proceso likha en ejecución.
+Las claves nunca se escriben en el YAML: el campo `api_key_env` nombra la variable de entorno que contiene la clave. Define exactamente esa variable (en tu entorno o en un archivo `.env`) y, tras editar `agent/config/llm.yaml`, reinicia cualquier proceso xcoder en ejecución.
 
 **Cambiar a un proveedor compatible con OpenAI (ejemplo: OpenAI):**
 

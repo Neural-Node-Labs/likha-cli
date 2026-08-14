@@ -478,7 +478,6 @@ export class LangGraphEngine implements IReactEngine, IReactEngineV2 {
         this.io.log(`📈 Final health score: ${this.getHealthScore()}/100 (${this.health.scores.length} scored steps)`);
       }
     }
-    }
 
     return finalContent;
   }

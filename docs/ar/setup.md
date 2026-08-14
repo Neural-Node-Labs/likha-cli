@@ -1,7 +1,7 @@
 <!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:40.042Z | ronin:subtask code-st-82c66c -->
-# likha — التثبيت والإعداد
+# xcoder — التثبيت والإعداد
 
-يوضّح هذا المستند كيفية تثبيت likha، وضبط متغيرات البيئة، وتهيئة قاعدة البيانات، وإعداد سير عمل التطوير.
+يوضّح هذا المستند كيفية تثبيت xcoder، وضبط متغيرات البيئة، وتهيئة قاعدة البيانات، وإعداد سير عمل التطوير.
 
 ## المتطلبات الأساسية
 
@@ -14,7 +14,7 @@
 ثبّت التبعيات من جذر المشروع (يقوم هذا الأمر أيضًا بتثبيت تبعيات واجهة `ui/`):
 
 ```bash
-npm run likha:install
+npm run xcoder:install
 ```
 
 ثم ابنِ مصادر TypeScript (يقوم نص `build` أيضًا بنسخ دليل الإعداد `agent/` إلى `dist/config/`):
@@ -50,7 +50,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 | `MAX_ITERATIONS` | سقف تكرارات حلقة ReAct لكل جولة |
 | `XCODER_RESTRICT_TO_WORKSPACE` | حاجز أمان: يرفض مسارات `read_tool`/`write_edit_tool` خارج دليل العمل |
 | `DATABASE_TYPE` | نوع قاعدة البيانات: `sqlite` (الافتراضي) أو `postgres` |
-| `DATABASE_SQLITE_PATH` | مسار ملف قاعدة بيانات SQLite (الافتراضي: `~/.likha/data/likha.db`) |
+| `DATABASE_SQLITE_PATH` | مسار ملف قاعدة بيانات SQLite (الافتراضي: `~/.xcoder/data/xcoder.db`) |
 | `DATABASE_URL` | سلسلة اتصال PostgreSQL (تتجاوز المعاملات الفردية أدناه) |
 | `DATABASE_HOST` | مضيف PostgreSQL |
 | `DATABASE_PORT` | منفذ PostgreSQL |
@@ -79,7 +79,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
-# DATABASE_URL=postgresql://user:pass@localhost:5432/likha
+# DATABASE_URL=postgresql://user:pass@localhost:5432/xcoder
 # REMOTE_SSH_USER=deploy
 # REMOTE_SSH_PASSWORD=your-password
 # XCODER_SSH_TARGETS=host1:22,host2:22
@@ -91,9 +91,9 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 ### مزوّدات LLM
 
-يعمل خلفية likha للـ LLM بالإعداد من الملف: **DeepSeek هو المزوّد الافتراضي**، ويمكن اختيار أي مزوّد متوافق مع OpenAI (OpenAI أو OpenRouter أو Groq أو Ollama أو وكيل شركة …) أو Anthropic عبر تعديل `agent/config/llm.yaml` فقط — **دون تغيير أي كود**، ولا يوجد خيار CLI لتبديل المزوّد.
+يعمل خلفية xcoder للـ LLM بالإعداد من الملف: **DeepSeek هو المزوّد الافتراضي**، ويمكن اختيار أي مزوّد متوافق مع OpenAI (OpenAI أو OpenRouter أو Groq أو Ollama أو وكيل شركة …) أو Anthropic عبر تعديل `agent/config/llm.yaml` فقط — **دون تغيير أي كود**، ولا يوجد خيار CLI لتبديل المزوّد.
 
-المفاتيح لا تُكتب أبدًا داخل ملف YAML؛ الحقل `api_key_env` يحدد اسم متغير البيئة الذي يحمل المفتاح. اضبط المتغير المذكور بالضبط في بيئتك أو في ملف `.env`، ثم أعد تشغيل أي عملية likha قيد التشغيل بعد التعديل.
+المفاتيح لا تُكتب أبدًا داخل ملف YAML؛ الحقل `api_key_env` يحدد اسم متغير البيئة الذي يحمل المفتاح. اضبط المتغير المذكور بالضبط في بيئتك أو في ملف `.env`، ثم أعد تشغيل أي عملية xcoder قيد التشغيل بعد التعديل.
 
 **التبديل إلى مزوّد متوافق مع OpenAI (مثال OpenAI):**
 
@@ -128,7 +128,7 @@ ANTHROPIC_API_KEY=sk-ant-your-key-here
 3. `endpoint` الافتراضي هو `/chat/completions` عند حذفه.
 4. `base_url` و`endpoint` يُتجاهلان مع `anthropic`.
 
-> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` متغيرات قديمة و**لا يقرؤها** likha.
+> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` متغيرات قديمة و**لا يقرؤها** xcoder.
 
 ## تهيئة قاعدة البيانات
 

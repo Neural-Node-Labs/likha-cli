@@ -163,4 +163,43 @@ export function resolveModelForSkill(config: LlmConfig, skillName?: string) {
   };
 }
 
+export function validateFallbackConfig(config: LlmConfig): string[] {
+  const errors: string[] = [];
+
+  // If fallback is optional and not defined, return early with no errors
+  if (!config.fallback) {
+    return errors;
+  }
+
+  const { provider, model, api_key_env, base_url } = config.fallback;
+
+  // Validate required fields
+  if (!provider) {
+    errors.push("Missing or empty fallback.provider");
+  }
+
+  if (!model) {
+    errors.push("Missing or empty fallback.model");
+  }
+
+  if (!api_key_env) {
+    errors.push("Missing or empty fallback.api_key_env");
+  } else {
+    // Check if the referenced environment variable exists and is non-empty
+    if (!process.env[api_key_env]) {
+      errors.push(`Environment variable specified in fallback.api_key_env (${api_key_env}) is unset or empty`);
+    }
+  }
+
+  // Check base_url requirements for OpenAI-compatible non-anthropic providers
+  if (provider && provider !== "anthropic") {
+    const resolvedUrl = resolveOpenAiBaseUrl({ provider, base_url });
+    if (!resolvedUrl) {
+      errors.push(`fallback.base_url is required for provider '${provider}'`);
+    }
+  }
+
+  return errors;
+}
+
 

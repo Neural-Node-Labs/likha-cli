@@ -1,7 +1,7 @@
 <!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:44.602Z | ronin:subtask code-st-82c66c -->
-# likha — Installation
+# xcoder — Installation
 
-Comment installer likha, configurer son environnement, initialiser la base de données et mettre en place un flux de travail de développement.
+Comment installer xcoder, configurer son environnement, initialiser la base de données et mettre en place un flux de travail de développement.
 
 ## Prérequis
 
@@ -14,7 +14,7 @@ Comment installer likha, configurer son environnement, initialiser la base de do
 Installez les dépendances depuis la racine du projet (cela installe aussi les dépendances du frontend `ui/`):
 
 ```bash
-npm run likha:install
+npm run xcoder:install
 ```
 
 Ensuite, compilez les sources TypeScript (le script `build` copie également le répertoire de configuration `agent/` dans `dist/config/`):
@@ -50,7 +50,7 @@ Les variables d'environnement suivantes sont prises en charge:
 | `MAX_ITERATIONS` | Plafond d'itérations de la boucle ReAct par tour |
 | `XCODER_RESTRICT_TO_WORKSPACE` | Garde-fou: refuse les chemins `read_tool`/`write_edit_tool` en dehors du répertoire de travail |
 | `DATABASE_TYPE` | Backend de base de données: `sqlite` (par défaut) ou `postgres` |
-| `DATABASE_SQLITE_PATH` | Chemin du fichier de base de données SQLite (par défaut: `~/.likha/data/likha.db`) |
+| `DATABASE_SQLITE_PATH` | Chemin du fichier de base de données SQLite (par défaut: `~/.xcoder/data/xcoder.db`) |
 | `DATABASE_URL` | Chaîne de connexion PostgreSQL (remplace les paramètres individuels ci-dessous) |
 | `DATABASE_HOST` | Hôte PostgreSQL |
 | `DATABASE_PORT` | Port PostgreSQL |
@@ -79,7 +79,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
-# DATABASE_URL=postgresql://user:pass@localhost:5432/likha
+# DATABASE_URL=postgresql://user:pass@localhost:5432/xcoder
 # REMOTE_SSH_USER=deploy
 # REMOTE_SSH_PASSWORD=your-password
 # XCODER_SSH_TARGETS=host1:22,host2:22
@@ -89,9 +89,9 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 ### Fournisseurs LLM
 
-Le backend LLM de likha est entièrement piloté par la configuration : **DeepSeek est le fournisseur par défaut**, mais n'importe quel fournisseur compatible OpenAI (OpenAI, OpenRouter, Groq, Ollama, un proxy d'entreprise, …) ainsi qu'Anthropic peuvent être sélectionnés en modifiant `agent/config/llm.yaml` — **aucune modification de code** et aucun drapeau CLI pour changer de fournisseur (le changement de fournisseur se fait uniquement via le fichier de configuration).
+Le backend LLM de xcoder est entièrement piloté par la configuration : **DeepSeek est le fournisseur par défaut**, mais n'importe quel fournisseur compatible OpenAI (OpenAI, OpenRouter, Groq, Ollama, un proxy d'entreprise, …) ainsi qu'Anthropic peuvent être sélectionnés en modifiant `agent/config/llm.yaml` — **aucune modification de code** et aucun drapeau CLI pour changer de fournisseur (le changement de fournisseur se fait uniquement via le fichier de configuration).
 
-Les clés ne sont jamais écrites dans le YAML : le champ `api_key_env` nomme la variable d'environnement qui contient la clé. Définissez exactement cette variable (dans votre environnement ou dans `.env`), puis redémarrez tout processus likha en cours après la modification.
+Les clés ne sont jamais écrites dans le YAML : le champ `api_key_env` nomme la variable d'environnement qui contient la clé. Définissez exactement cette variable (dans votre environnement ou dans `.env`), puis redémarrez tout processus xcoder en cours après la modification.
 
 **Basculer vers un fournisseur compatible OpenAI (exemple OpenAI) :**
 
@@ -126,7 +126,7 @@ Règles de routage :
 3. `endpoint` par défaut à `/chat/completions` lorsqu'il est omis.
 4. `anthropic` ignore `base_url` et `endpoint`.
 
-> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` sont des variables obsolètes et **ne sont pas lues** par likha.
+> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` sont des variables obsolètes et **ne sont pas lues** par xcoder.
 
 ## Initialisation de la base de données
 
