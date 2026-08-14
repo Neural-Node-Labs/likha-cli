@@ -1,7 +1,7 @@
 <!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:21.304Z | ronin:subtask code-st-82c66c -->
-# xcoder
+# likha
 
-**xcoder** — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.
+**likha** — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.
 
 - **Version:** 1.0.0
 - **License:** MIT
@@ -36,7 +36,7 @@
 
 ## Overview
 
-xcoder is a CLI agent that follows the **ReAct** (Reasoning + Acting) pattern: it iteratively thinks about a task, calls tools to gather information or make changes, observes the results, and repeats until the task is complete. It supports multiple orchestration engines, hot-pluggable skill directives, phase planning, an HTTP API server, a React UI, and a built-in self-healing mechanism that detects when the agent is stuck.
+likha is a CLI agent that follows the **ReAct** (Reasoning + Acting) pattern: it iteratively thinks about a task, calls tools to gather information or make changes, observes the results, and repeats until the task is complete. It supports multiple orchestration engines, hot-pluggable skill directives, phase planning, an HTTP API server, a React UI, and a built-in self-healing mechanism that detects when the agent is stuck.
 
 ### Key Features
 
@@ -64,7 +64,7 @@ xcoder is a CLI agent that follows the **ReAct** (Reasoning + Acting) pattern: i
 
 ```bash
 # Install dependencies
-npm run xcoder:install
+npm run likha:install
 
 # Build
 npm run build
@@ -92,7 +92,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 # MAX_ITERATIONS=30
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
-# DATABASE_URL=postgresql://user:pass@localhost:5432/xcoder
+# DATABASE_URL=postgresql://user:pass@localhost:5432/likha
 # REMOTE_SSH_USER=deploy
 # REMOTE_SSH_PASSWORD=your-password
 # XCODER_SSH_TARGETS=host1:22,host2:22
@@ -105,7 +105,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 ## CLI Usage
 
 ```bash
-xcoder [task] [options]
+likha [task] [options]
 ```
 
 ### Arguments
@@ -122,7 +122,7 @@ xcoder [task] [options]
 | `--chat` | Enter interactive chat mode (workspace = current folder) |
 | `--index` | Index the current workspace into `.agent/index/` |
 | `--skills` | List all loaded skills and their trigger keywords |
-| `--lesson <text>` | Record a lesson to `tasks/lessons.md` (see xcoder.md Self-Improvement Loop) |
+| `--lesson <text>` | Record a lesson to `tasks/lessons.md` (see likha.md Self-Improvement Loop) |
 | `--plan` | Force Plan Mode on, regardless of task complexity heuristic |
 | `--no-plan` | Force Plan Mode off, regardless of task complexity heuristic |
 | `--full-context-token` | Keep every historical copy of read_tool file snapshots in context instead of collapsing stale ones (see `src/core/contextCompaction.ts`); default: off, lean-token compaction is on |
@@ -130,15 +130,15 @@ xcoder [task] [options]
 | `--auto` | Fully autonomous mode — automatically answers 'yes' to ALL interactive prompts (plan approval, phase plan approval, iteration limit continuation, subagent continuation). The LLM drives end-to-end without any human intervention. Use this for CI/CD, automated testing, or any scenario where zero human input is desired. |
 | `--isolated-workspace` | Run tool operations against an isolated `./workspace-agent` copy instead of the live project files (see `src/core/workspaceManager.ts`); default: off |
 | `--engine <name>` | Orchestration engine to use (default: `react`). Registered engines: `react`, `lean`, `simple`, `swarm`, `langgraph`, `agentic`, `brain`, `procedure`. See `src/core/engine/EngineRegistry.ts` to register another implementation. |
-| `--serve` | Start the xcoder HTTP API server |
-| `--ui` | Start both the xcoder HTTP API server and the UI frontend |
+| `--serve` | Start the likha HTTP API server |
+| `--ui` | Start both the likha HTTP API server and the UI frontend |
 | `--port <number>` | Port for the API server (default: 3001) |
 | `--host <address>` | Host for the API server (default: 0.0.0.0) |
 | `--deploy` | Trigger deploy mode (Docker Compose) |
 | `--docker` | Use Docker Compose for deployment |
 | `--llm <boolean>` | Send deploy task to the LLM as a devops task |
 | `--remote <ip>` | Remote host IP to deploy to |
-| `--remote-path <path>` | Remote directory path for deployment (default: `/opt/xcoder`) |
+| `--remote-path <path>` | Remote directory path for deployment (default: `/opt/likha`) |
 | `--audit-react` | Run the built-in bug-fixing scenario battery through the real orchestrator and report on how it performed |
 | `--audit-out <path>` | Where to write the audit report markdown (default: `reports/react-audit-<timestamp>.md`) |
 | `--diagnose-live` | Run the 7-point ReAct diagnostic suite against the real configured LLM: iteration stopping, restart-approval, duplicate-action avoidance, tool/skill usage, ground-up deployable app, bug fixing, and full SDLC |
@@ -148,43 +148,43 @@ xcoder [task] [options]
 
 ```bash
 # Run a single task
-xcoder "Refactor the authentication module to use JWT tokens"
+likha "Refactor the authentication module to use JWT tokens"
 
 # Interactive chat mode
-xcoder --chat
+likha --chat
 
 # List available skills
-xcoder --skills
+likha --skills
 
 # Index the workspace
-xcoder --index
+likha --index
 
 # Record a lesson
-xcoder --lesson "Always validate file paths before writing"
+likha --lesson "Always validate file paths before writing"
 
 # Use the LangGraph engine
-xcoder --engine langgraph --task "Analyze the test coverage"
+likha --engine langgraph --task "Analyze the test coverage"
 
 # Start the API server
-xcoder --serve --port 3001
+likha --serve --port 3001
 
 # Start the API + UI
-xcoder --ui
+likha --ui
 
 # Deploy via Docker Compose
-xcoder --deploy --docker
+likha --deploy --docker
 
 # Deploy to a remote host
-xcoder --deploy --docker --remote 192.168.1.100
+likha --deploy --docker --remote 192.168.1.100
 
 # Run in fully autonomous mode
-xcoder --auto --task "Set up CI/CD pipeline"
+likha --auto --task "Set up CI/CD pipeline"
 
 # Run the ReAct audit
-xcoder --audit-react
+likha --audit-react
 
 # Run live diagnostics
-xcoder --diagnose-live
+likha --diagnose-live
 ```
 
 ---
@@ -192,9 +192,9 @@ xcoder --diagnose-live
 ## Architecture
 
 ```
-xcoder/
+likha/
 ├── agent/                  # Skill definitions and protocol files
-│   ├── xcoder.md           # Engineering protocol (system prompt)
+│   ├── likha.md           # Engineering protocol (system prompt)
 │   └── skills/             # 30+ skill definitions (SKILL.md per skill)
 ├── src/
 │   ├── cli/                # CLI entry point (Commander)
@@ -282,7 +282,7 @@ xcoder/
 
 ## Engines
 
-xcoder provides eight engine implementations, all interchangeable via the `IReactEngine` interface. Select one with the `--engine` flag or via `EngineRegistry.createEngine()`.
+likha provides eight engine implementations, all interchangeable via the `IReactEngine` interface. Select one with the `--engine` flag or via `EngineRegistry.createEngine()`.
 
 | Engine | Flag | Description |
 |--------|------|-------------|
@@ -325,7 +325,7 @@ interface IReactEngineV2 extends IReactEngine {
 
 ## Skill System
 
-xcoder has a hot-pluggable skill system. Skills are defined as markdown files with YAML frontmatter in `agent/skills/<name>/SKILL.md`. Each skill has:
+likha has a hot-pluggable skill system. Skills are defined as markdown files with YAML frontmatter in `agent/skills/<name>/SKILL.md`. Each skill has:
 
 - **Trigger keywords** — matched against the task description to auto-select relevant skills
 - **Role** — the persona the LLM should adopt (e.g., "Software Engineer", "DevOps Engineer")
@@ -345,7 +345,7 @@ analyst, architect, aws, azure, conversation, devops, docker, docker-expert, fil
 
 ```bash
 # List all skills and their triggers
-xcoder --skills
+likha --skills
 ```
 
 ---
@@ -396,14 +396,14 @@ Phase Planning divides complex tasks into sequential phases, each running as a s
 
 ```bash
 # Run as a single ReAct loop (no phase planning)
-xcoder --single-phase --task "Complex task"
+likha --single-phase --task "Complex task"
 ```
 
 ---
 
 ## Self-Healing & Duplicate Detection
 
-xcoder has a multi-layered self-healing system that detects when the agent is stuck and nudges it back on track.
+likha has a multi-layered self-healing system that detects when the agent is stuck and nudges it back on track.
 
 ### Health Scoring
 
@@ -443,7 +443,7 @@ A rolling window (default: last 5 reasons) prevents flagging legitimately simila
 
 ## Goal Validation
 
-Before accepting a completion, xcoder runs the result past an independent validator (a second LLM call) that checks whether the claimed completion is actually supported by the recorded observations.
+Before accepting a completion, likha runs the result past an independent validator (a second LLM call) that checks whether the claimed completion is actually supported by the recorded observations.
 
 - **Enabled by default** (`validateGoal: true`)
 - **Max retries:** 2 (configurable via `maxValidatorRetries`)
@@ -472,23 +472,23 @@ Context compaction (lean-token mode) is **enabled by default**. It collapses sta
 
 ```bash
 # Keep all historical file reads in context
-xcoder --full-context-token --task "My task"
+likha --full-context-token --task "My task"
 ```
 
 ---
 
 ## API Server
 
-xcoder includes an Express-based HTTP API server for remote task execution and UI integration.
+likha includes an Express-based HTTP API server for remote task execution and UI integration.
 
 ### Starting the Server
 
 ```bash
 # Start the API server only
-xcoder --serve --port 3001
+likha --serve --port 3001
 
 # Start both API and UI
-xcoder --ui
+likha --ui
 ```
 
 ### Authentication
@@ -559,16 +559,16 @@ The `/chat` endpoint returns a structured response including:
 
 ## UI
 
-xcoder includes a React frontend built with Vite and TypeScript.
+likha includes a React frontend built with Vite and TypeScript.
 
 ### Starting the UI
 
 ```bash
 # Start both API and UI
-xcoder --ui
+likha --ui
 
 # Or use the npm script
-npm run xcoder:ui
+npm run likha:ui
 ```
 
 ### UI Features
@@ -588,29 +588,29 @@ npm run xcoder:ui
 
 ## Deploy Mode
 
-xcoder supports local and remote deployment via Docker Compose.
+likha supports local and remote deployment via Docker Compose.
 
 ### Local Deploy
 
 ```bash
 # Deploy using Docker Compose (direct execution)
-xcoder --deploy --docker
+likha --deploy --docker
 
 # Deploy with LLM as devops engineer (diagnoses and fixes issues)
-xcoder --deploy --docker --llm true
+likha --deploy --docker --llm true
 ```
 
 ### Remote Deploy
 
 ```bash
 # Deploy to a remote host
-xcoder --deploy --docker --remote 192.168.1.100
+likha --deploy --docker --remote 192.168.1.100
 
 # With custom remote path
-xcoder --deploy --docker --remote 192.168.1.100 --remote-path /opt/myapp
+likha --deploy --docker --remote 192.168.1.100 --remote-path /opt/myapp
 
 # With LLM assistance
-xcoder --deploy --docker --remote 192.168.1.100 --llm true
+likha --deploy --docker --remote 192.168.1.100 --llm true
 ```
 
 Requires `REMOTE_SSH_USER` and `REMOTE_SSH_PASSWORD` environment variables for remote deployment.
@@ -634,8 +634,8 @@ XCODER_SSH_PASSWORD=fleet-password
 The built-in bug-fixing scenario battery tests the orchestrator against a set of predefined bug-fixing scenarios. Each scenario is independently verified.
 
 ```bash
-xcoder --audit-react
-xcoder --audit-out reports/my-audit.md
+likha --audit-react
+likha --audit-out reports/my-audit.md
 ```
 
 ### Live Diagnostics
@@ -650,8 +650,8 @@ The 7-point ReAct diagnostic suite tests the real configured LLM against:
 7. Full SDLC
 
 ```bash
-xcoder --diagnose-live
-xcoder --diagnose-out reports/my-diagnostics.md
+likha --diagnose-live
+likha --diagnose-out reports/my-diagnostics.md
 ```
 
 ---
@@ -702,12 +702,12 @@ DEEPSEEK_API_KEY=sk-your-key-here
 | `XCODER_SSH_PASSWORD` | Fleet SSH password |
 | `GITHUB_TOKEN` | GitHub token for git operations |
 
-> The legacy `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` env vars are **not read** by xcoder.
+> The legacy `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` env vars are **not read** by likha.
 > Provider, base URL, endpoint, and model are configured in `agent/config/llm.yaml` — see below.
 
 ### LLM Providers
 
-xcoder's LLM backend is config-driven and provider-agnostic. **DeepSeek is the default**,
+likha's LLM backend is config-driven and provider-agnostic. **DeepSeek is the default**,
 but any OpenAI-compatible provider (OpenAI, OpenRouter, Groq, Ollama, a company proxy, …)
 and Anthropic can be selected by editing `agent/config/llm.yaml` and setting the matching
 API key environment variable — **no code changes or CLI flags needed**.
@@ -831,13 +831,13 @@ fallback:
 3. `endpoint` defaults to `/chat/completions` when omitted.
 4. There is **no CLI flag for switching providers** — provider switching is config-file-driven (`agent/config/llm.yaml`) only.
 
-After editing `agent/config/llm.yaml`, restart any running xcoder process so the new provider is loaded.
+After editing `agent/config/llm.yaml`, restart any running likha process so the new provider is loaded.
 
 ---
 
 ## Database Layer
 
-xcoder supports both SQLite and PostgreSQL for persistent storage.
+likha supports both SQLite and PostgreSQL for persistent storage.
 
 ### SQLite
 
@@ -890,12 +890,12 @@ npm run setup:non-interactive
 | `npm run dev` | Run in dev mode (ts-node) |
 | `npm test` | Run test suite (Vitest) |
 | `npm run test:watch` | Run tests in watch mode |
-| `npm run xcoder:link` | Link xcoder globally via npm link |
-| `npm run xcoder:unlink` | Unlink global xcoder |
-| `npm run xcoder:install` | Install all dependencies (including UI) |
-| `npm run xcoder:build` | Build both CLI and UI |
-| `npm run xcoder:ui` | Start API + UI concurrently |
-| `npm run xcoder:api` | Start API server only |
+| `npm run likha:link` | Link likha globally via npm link |
+| `npm run likha:unlink` | Unlink global likha |
+| `npm run likha:install` | Install all dependencies (including UI) |
+| `npm run likha:build` | Build both CLI and UI |
+| `npm run likha:ui` | Start API + UI concurrently |
+| `npm run likha:api` | Start API server only |
 | `npm run package:build` | Build distributable package |
 | `npm run package:validate` | Validate package |
 | `npm run package:tarball` | Create tarball |
@@ -947,7 +947,7 @@ Strategies and approaches.
 Specific instructions.
 ```
 
-3. Run `xcoder --skills` to verify it's loaded
+3. Run `likha --skills` to verify it's loaded
 
 ### Adding a New Engine
 
@@ -960,7 +960,7 @@ registerEngine("my-engine", ({ llm, telemetry, io, options }) => {
 });
 ```
 
-3. Use it: `xcoder --engine my-engine --task "..."`
+3. Use it: `likha --engine my-engine --task "..."`
 
 ---
 
