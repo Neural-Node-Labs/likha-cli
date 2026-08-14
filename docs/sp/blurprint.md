@@ -82,7 +82,7 @@ Se incluyen dos implementaciones:
 
 ## Motores
 
-Los cuatro motores implementan `IReactEngine` / la interfaz del ciclo de vida V2 (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
+Los ocho motores implementan `IReactEngine` / la interfaz del ciclo de vida V2 (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
 
 | Motor | Nombre de registro | Descripción |
 |---|---|---|
@@ -90,12 +90,16 @@ Los cuatro motores implementan `IReactEngine` / la interfaz del ciclo de vida V2
 | **LeanEngine** | `lean` | Bucle ReAct enfocado y autocontenido — el bucle central sin modo Plan ni subagentes. Admite el ciclo de vida V2 |
 | **LangGraphEngine** | `langgraph` | Bucle ReAct construido sobre StateGraph de `@langchain/langgraph` con una máquina de estados explícita de dos nodos (agente ↔ herramientas). Admite el ciclo de vida V2 |
 | **SwarmEngine** | `swarm` | Orquestación de enjambre en paralelo con descomposición WBS y envío concurrente de agentes. Admite el ciclo de vida V2 |
+| **SimpleReactEngine** | `simple` | Bucle ReAct mínimo sin modo Plan, planificación por fases ni reintento de validación de objetivos |
+| **AgenticEngine** | `agentic` | Bucle ReAct agéntico determinista con un ThinkFn inyectable |
+| **BrainEngine** | `brain` | Enruta una tarea a través de ≥2 roles mediante el MultiRoleRouter compartido |
+| **ProcedureEngine** | `procedure` | Generación de procedimiento en dos pasos más ejecución local de pasos |
 
 Los motores también se pueden crear programáticamente:
 
 ```ts
 const engine = createEngine("lean", { llm, telemetry, io, options });
-console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
+console.log(listEngines()); // ["react", "lean", "simple", "swarm", "langgraph", "agentic", "brain", "procedure"]
 ```
 
 ## Sistema de habilidades

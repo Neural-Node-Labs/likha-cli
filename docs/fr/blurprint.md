@@ -82,7 +82,7 @@ Deux implémentations sont fournies :
 
 ## Moteurs
 
-Les quatre moteurs implémentent `IReactEngine` / l'interface du cycle de vie V2 (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
+Les huit moteurs implémentent `IReactEngine` / l'interface du cycle de vie V2 (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
 
 | Moteur | Nom d'enregistrement | Description |
 |---|---|---|
@@ -90,12 +90,16 @@ Les quatre moteurs implémentent `IReactEngine` / l'interface du cycle de vie V2
 | **LeanEngine** | `lean` | Boucle ReAct ciblée et autonome — la boucle centrale sans mode Plan ni sous-agents. Prend en charge le cycle de vie V2 |
 | **LangGraphEngine** | `langgraph` | Boucle ReAct construite sur StateGraph de `@langchain/langgraph` avec une machine d'états explicite à deux nœuds (agent ↔ outils). Prend en charge le cycle de vie V2 |
 | **SwarmEngine** | `swarm` | Orchestration d'essaim en parallèle avec décomposition WBS et envoi concurrent d'agents. Prend en charge le cycle de vie V2 |
+| **SimpleReactEngine** | `simple` | Boucle ReAct minimale sans mode Plan, planification par phases ni nouvelle tentative de validation des objectifs |
+| **AgenticEngine** | `agentic` | Boucle ReAct agentique déterministe avec un ThinkFn injectable |
+| **BrainEngine** | `brain` | Achemine une tâche à travers ≥2 rôles via le MultiRoleRouter partagé |
+| **ProcedureEngine** | `procedure` | Génération de procédure en deux étapes plus exécution locale des étapes |
 
 Les moteurs peuvent aussi être créés par programmation :
 
 ```ts
 const engine = createEngine("lean", { llm, telemetry, io, options });
-console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
+console.log(listEngines()); // ["react", "lean", "simple", "swarm", "langgraph", "agentic", "brain", "procedure"]
 ```
 
 ## Système de compétences

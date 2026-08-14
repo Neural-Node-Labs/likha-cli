@@ -1,4 +1,15 @@
-<!-- ronin:version 2 | ronin:task task-bc7d1e | ronin:updated 2026-08-13T07:43:54.695Z | ronin:subtask document-st-2b7ee2 -->
+<!-- ronin:version 3 | ronin:task task-4508cb | ronin:updated 2026-08-13T16:15:00.000Z | ronin:subtask document-st-3e4140 -->
+# Engine/CLI/docs consistency verification
+
+Cross-checked engine definitions, CLI options, and documentation for full alignment (8 engines:
+`react`, `lean`, `simple`, `swarm`, `langgraph`, `agentic`, `brain`, `procedure`).
+
+- Verified `EngineRegistry.ts` (`listEngines()`), the CLI `--help` output, and all 22 documentation
+  files (root `README.md` + `docs/{en,ar,ch,fr,ph,ru,sp}/`) list the same 8 engines in the same order.
+- Ran the engine test suite (116 tests passed) and `tsc --noEmit` (0 errors) — no regressions.
+- Fixed a documentation typo: `excoder --audit-react` → `xcoder --audit-react` in
+  `docs/{en,fr,ru,sp}/usage.md`.
+
 # Refactor summary
 
 Addresses the 4 points you gave, on top of `xcoder-production-review.md`.
@@ -361,3 +372,90 @@ and locks the behavior down with a Windows-safe boundary test suite.
   `--purge` behavior should be back to its pre-fix state with the pre-existing `purge.test.ts`
   / `purgeCommand.test.ts` still passing.
 
+<!-- ronin:version 1 | ronin:task task-ac9eef | ronin:updated 2026-08-13T14:05:52.020Z | ronin:subtask document-st-4a162c -->
+
+## 6. Workflow / orchestrator engines: agentic, brain, procedure
+
+### What changed and why
+
+The three workflow/orchestrator libraries that previously lived as temporary/experimental
+Python packages under `libs/` (agentic_workflow, brain_workflow, procedure_workflow) are now
+canonical TypeScript in `src/core/`, registered into the engine registry, and covered by
+vitest. **`libs/` is temporary reference material — do not build new work on top of it.**
+Anything added to those workflows must target `src/core/`.
+
+- `src/core/engine/AgenticEngine.ts` — registered as `"agentic"`. Deterministic agentic ReAct
+  loop (port of the reference Python agentic_workflow/orchestrator.py) with an injectable
+  ThinkFn. The default ThinkFn asks the shared MultiRoleRouter ("orchestrator" role) for a JSON
+  AgentDecision each iteration; the loop itself never calls an LLM directly
+  (`src/core/workflows/agenticLoop.ts`), so it is fully unit-testable without a live model.
+  `maxIterations` defaults to 25. Implements IReactEngine + IReactEngineV2.
+- `src/core/engine/BrainEngine.ts` — registered as `"brain"`. Exposes the shared MultiRoleRouter
+  (port of brain_workflow/router.py) as a callable engine. `run()` routes a task across ≥2 roles
+  (orchestrator + critic by default, both over the injected LlmClient) and synthesizes the
+  final answer, folding critic notes in after the orchestrator's draft.
+- `src/core/engine/ProcedureEngine.ts` — registered as `"procedure"`. Two-step procedure
+  generation (plan → strict JSON `Procedure`, port of procedure_workflow/orchestrator.py)
+  followed by local step execution over the existing tool dispatcher
+  (`src/core/workflows/stepExecution.ts`, honoring dependsOn / maxRetries / onFailure under
+  workspaceRoot). Remote SSH execution is explicitly deferred (design D4); everything runs
+  locally today.
+- `src/core/workflows/{agenticLoop,router,procedure,stepExecution,types}.ts` — shared ported
+  workflow layer used by the three engines: the agentic loop, MultiRoleRouter with per-role
+  model/temperature/responseFormat overrides, procedure generation, local step execution, and
+  the shared types (Phase, AgentDecision, ThinkFn, ProcedureStep, …).
+- `src/core/engine/EngineRegistry.ts` — registers the three new engines; `listEngines()` now
+  returns react (default), lean, simple, langgraph, swarm, agentic, brain, procedure. The CLI
+  flag `--engine <name>` (src/cli/index.ts) selects any registered engine at runtime; an
+  unknown name throws with the known list.
+- Tests: `src/core/engine/__tests__/{AgenticEngine,BrainEngine,ProcedureEngine,WorkflowEnginesRegistry}.test.ts`
+  and `src/core/workflows/__tests__/{router,stepExecution}.test.ts`.
+
+### Test-authoring defect found & fixed (RCA: .ronin/defects/defect0001.md)
+
+The AC-4 smoke test in `AgenticEngine.test.ts` scripted a stateless ThinkFn that always
+returned `done: false` — contradicting the agentic loop contract (the loop calls `think` until
+`done: true` or `tool: "none"`), so the loop correctly ran to maxout (25) while the test
+asserted 1 call. That was a test-authoring defect, not an engine defect. Fixed in the test by
+routing the single tool-execution decision through the loop's `phase: "validation"`
+short-circuit: the tool executes once, then the loop stops — preserving the original
+1-think-call / 1-iteration assertions. No production code change was required.
+
+### Verified
+
+- `npm run typecheck` → 0 errors.
+- `npm run regression` (`vitest run src`) → 160 suites / 515 tests passed, 0 failed.
+
+### Rollback
+
+- Engine registrations: remove the three `registerEngine(...)` blocks from
+  `src/core/engine/EngineRegistry.ts`, then delete the new engine + workflow files
+  (`src/core/engine/{AgenticEngine,BrainEngine,ProcedureEngine}.ts`,
+  `src/core/workflows/{agenticLoop,router,procedure,stepExecution,types}.ts`) and their test
+  files.
+- `--engine` continues to resolve against the remaining registered engines; a stale
+  `--engine agentic` after rollback throws with the known list, failing loudly rather than
+  silently.
+- After any rollback, re-run `npm run regression`.
+
+# Update: skills-loading RCA fix and iteration-limit callback contract
+
+## What changed and why
+
+- **Skills no longer silently dropped (RCA: skills not loading).** The skill loader regex anchored YAML frontmatter at byte 0 of SKILL.md, so two valid skills never registered: `agent/skills/conversation/SKILL.md` (no frontmatter, legacy `# name:` comment metadata) and `agent/skills/filesystem-management/SKILL.md` (HTML comment before `---`). `SkillRegistry.loadHeaders()` hit `if (!match) continue;` and dropped both silently. `src/core/skillRegistry.ts` now tolerates a UTF-8 BOM, leading blank lines/whitespace, and leading HTML comments before frontmatter (up to 8 iterations), and reports anything still unparseable via new `SkillDiagnostic` codes (NO_SKILL_MD / LEGACY_METADATA / NO_FRONTMATTER / YAML_ERROR / INVALID_HEADER / DIR_NAME_MISMATCH) exposed through `listDiagnostics()` and an optional `onDiagnostic` constructor sink. Both SKILL.md files were converted to canonical YAML frontmatter.
+- **Iteration-limit callback now fires (defect 0001).** With phase planning enabled (the default), `runPhasePlanning()` wraps the real task in a synthetic subagent when no distinct phases are detected; the subagent path short-circuited to `synthesizeReport()` before invoking the caller's `onIterationLimitReached`, so the callback never fired. `RunOptions` gains `suppressOnIterationLimitReached`, set only by genuine `subagent_tool` spawns; phase-planning children keep `isSubagent: true` but no longer suppress the callback and pass `skipPlanMode: true` so they do not re-enter plan mode. Default `maxIterations` in `src/core/orchestrator.ts` corrected from 20 to 50 to match the documented contract.
+
+## Verified
+
+- `npx vitest run --config vitest.config.ts src/core` -> 74/74 suites, 246/246 tests passed.
+- `npm run regression` (vitest run src) -> 166/166 suites, 536/536 tests passed.
+- `npm run typecheck` -> 0 errors.
+- `node tmp/check-skills.cjs` -> ok=37, bad=0 for both `agent/skills` and `dist/config/agent/skills`; `node dist/cli/index.js --skills` lists exactly 37 skills including `conversation` and `filesystem-management`.
+- New/kept coverage: `src/core/__tests__/skillRegistry.test.ts` (19 tests) and `src/core/__tests__/orchestratorMaxIterations.test.ts` (2 tests: default 50 and explicit `maxIterations: 3` both reach `onIterationLimitReached`).
+
+## Rollback
+
+- Skills: revert to the original byte-0-anchored loader by restoring the pre-fix `src/core/skillRegistry.ts` to the anchored-regex version, and restore the legacy comment headers in the two SKILL.md files. The two skills would again be dropped, so keep the canonical frontmatter unless the loader revert is intentional.
+- Iteration-limit contract: remove `suppressOnIterationLimitReached` from `RunOptions`, reset phase-planning children to `{ ...runOpts, isSubagent: true }` without `skipPlanMode`, and restore `maxIterations = this.opts.maxIterations ?? 20`. Re-run `npm run regression`; `orchestratorMaxIterations.test.ts` will fail again (expected -1), which documents the regression.
+
+Full RCA: .ronin/defects/defect0001.md (status FIXED).

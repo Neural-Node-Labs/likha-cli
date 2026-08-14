@@ -99,12 +99,16 @@ registerEngine("react", (deps) => new ReActOrchestrator(deps.llm, deps.telemetry
 | **LeanEngine** | `lean` | حلقة ReAct مركّزة ومكتفية بذاتها؛ تدعم دورة الحياة V2 |
 | **LangGraphEngine** | `langgraph` | حلقة ReAct مبنية على StateGraph من `@langchain/langgraph` مع آلة حالة صريحة ثنائية العقدة (agent ↔ tools)؛ تدعم دورة الحياة V2 |
 | **SwarmEngine** | `swarm` | تنسيق swarm موازٍ مع تحليل WBS وتوزيع وكلاء متزامنين؛ يدعم دورة الحياة V2 |
+| **SimpleReactEngine** | `simple` | حلقة ReAct بسيطة بدون وضع Plan أو تخطيط المراحل أو إعادة محاولة التحقق من الأهداف |
+| **AgenticEngine** | `agentic` | حلقة ReAct وكيلية حتمية مع ThinkFn قابل للحقن |
+| **BrainEngine** | `brain` | يوجّه المهمة عبر ≥2 أدوار عبر MultiRoleRouter المشترك |
+| **ProcedureEngine** | `procedure` | توليد إجراء من خطوتين مع تنفيذ محلي للخطوات |
 
 يمكن أيضًا إنشاء المحركات برمجيًا:
 
 ```ts
 const engine = createEngine("lean", { llm, telemetry, io, options });
-console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
+console.log(listEngines()); // ["react", "lean", "simple", "swarm", "langgraph", "agentic", "brain", "procedure"]
 ```
 
 ## نظام المهارات

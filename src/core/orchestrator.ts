@@ -1,4 +1,4 @@
-// ronin:version 2 | ronin:task task-b88b43 | ronin:updated 2026-08-13T05:53:51.078Z | ronin:subtask code-st-5a7e6a
+// ronin:version 7 | ronin:task task-4508cb | ronin:updated 2026-08-13T15:54:51.628Z | ronin:subtask test-st-ec8121
 import fs from "node:fs";
 import path from "node:path";
 import { LlmClient, LlmMessage, ReActStep, TelemetryInterface, LoadedSkill, Phase, LlmUsage, SubagentResult, ReActMemory, ScoreEntry, HealthScore, DEFAULT_HEALTH_SCORE } from "./types.js";
@@ -127,6 +127,13 @@ export interface OrchestratorOptions {
 export interface RunOptions {
   skipPlanMode?: boolean; // true for subagent runs — subagents don't re-enter plan mode
   isSubagent?: boolean;
+  /**
+   * True only for genuine subagent_tool spawns: their parent consults
+   * onIterationLimitReached, so the subagent itself stops at the limit without
+   * invoking the callback. Phase-planning children must NOT set this — they
+   * are the actual server of the caller's run and must honor the callback.
+   */
+  suppressOnIterationLimitReached?: boolean;
 }
 
 const READ_ONLY_TOOLS = new Set(["glob_tool", "grep_tool", "read_tool", "list_directory_tool", "find_files_tool", "get_dependency_graph_tool", "search_code_tool", "search_ast_tool", "read_outline_tool", "read_file_range_tool", "read_multiple_files_tool", "read_full_file_tool", "git_diff_tool", "git_log_tool", "validate_file_tool"]);
@@ -417,7 +424,7 @@ export class ReActOrchestrator implements IReactEngine {
     }
 
     const skills = this.selectSkills(taskDescription);
-    const maxIterations = this.opts.maxIterations ?? 20;
+    const maxIterations = this.opts.maxIterations ?? 50;
 
     const indent = this.opts.consoleIndent ?? 0;
     const headerPrefix = indent > 0 ? "  ".repeat(indent) : "";
@@ -487,8 +494,9 @@ export class ReActOrchestrator implements IReactEngine {
       this.iterationCount += 1;
 
       if (iteration > maxIterations) {
-        if (runOpts.isSubagent) {
-          // Subagents don't interactively prompt — they just stop and report what they have.
+        if (runOpts.suppressOnIterationLimitReached) {
+          // Genuine subagent_tool spawns don't interactively prompt — they just stop and
+          // report what they have; their parent consults onIterationLimitReached.
           // Instead of a hardcoded string, synthesize a meaningful report from the message
           // history so the parent orchestrator gets useful partial-progress information.
           this.lastOutcome = "partial_success";
@@ -1106,7 +1114,11 @@ export class ReActOrchestrator implements IReactEngine {
       projectRoot: this.projectRoot,
       consoleIndent: (this.opts.consoleIndent ?? 0) + 1,
     });
-    const result = await sub.run(task, { skipPlanMode: true, isSubagent: true });
+    const result = await sub.run(task, {
+      skipPlanMode: true,
+      isSubagent: true,
+      suppressOnIterationLimitReached: true,
+    });
     this.absorbSubagentUsage(sub);
 
     const subOutcome = sub.getLastOutcome();
@@ -1319,7 +1331,11 @@ export class ReActOrchestrator implements IReactEngine {
         consoleIndent: (this.opts.consoleIndent ?? 0) + 1,
         singlePhase: true, // prevent infinite recursion
       });
-      const result = await sub.run(taskDescription, { ...runOpts, isSubagent: true });
+      const result = await sub.run(taskDescription, {
+        ...runOpts,
+        skipPlanMode: true, // subagent runs don't re-enter plan mode
+        isSubagent: true,
+      });
       this.absorbSubagentUsage(sub);
       return result;
     }
@@ -1356,7 +1372,11 @@ export class ReActOrchestrator implements IReactEngine {
         consoleIndent: (this.opts.consoleIndent ?? 0) + 1,
         singlePhase: true, // prevent infinite recursion
       });
-      const phaseResult = await sub.run(phaseTask, { ...runOpts, isSubagent: true });
+      const phaseResult = await sub.run(phaseTask, {
+        ...runOpts,
+        skipPlanMode: true, // subagent runs don't re-enter plan mode
+        isSubagent: true,
+      });
       this.absorbSubagentUsage(sub);
 
       // Capture per-phase stats (Item 3a)

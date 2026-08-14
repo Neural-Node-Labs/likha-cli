@@ -70,6 +70,14 @@ program
   .option("--remote <ip>", "remote host IP to deploy to (uses REMOTE_SSH_USER and REMOTE_SSH_PASSWORD from .env)")
   .option("--remote-path <path>", "remote directory path for deployment (default: /opt/xcoder)")
   .option("--engine <name>", `orchestration engine to use (default: "${DEFAULT_ENGINE}"). Registered engines: ${listEngines().join(", ")}. See src/core/engine/EngineRegistry.ts to register another implementation.`, DEFAULT_ENGINE)
+  .option("--react", `use the reference ReAct engine (equivalent to --engine react; default)`)
+  .option("--lean", "use the LeanEngine — a focused, self-contained ReAct loop with cancellation, progress observers, and self-healing health scoring (equivalent to --engine lean)")
+  .option("--simple", "use the SimpleReactEngine — the bare ReAct loop with no Plan Mode, Phase Planning, or goal-validation retry (equivalent to --engine simple)")
+  .option("--swarm", "use the SwarmEngine — distributes tasks to parallel swarm agents driven by an orchestrating agent (equivalent to --engine swarm)")
+  .option("--langgraph", "use the LangGraphEngine — a LangGraph StateGraph-based ReAct loop (equivalent to --engine langgraph)")
+  .option("--agentic", "use the AgenticEngine — a deterministic agentic ReAct loop with an injectable ThinkFn (equivalent to --engine agentic)")
+  .option("--brain", "use the BrainEngine — routes a task across >=2 roles via the shared MultiRoleRouter (equivalent to --engine brain)")
+  .option("--procedure", "use the ProcedureEngine — two-step procedure generation plus local step execution (equivalent to --engine procedure)")
   .option("--initialize-db", "initialize the SQLite database (create tables, run migrations). Idempotent — safe to run multiple times.")
   .option("--purge", "remove agent-internal metadata and generated artifacts (.agent/, .log/, tasks/) from the workspace (see also `xcoder purge --help`)")
   .option("--purge-scope <scope>", "scope for --purge: 'workspace' (default) or 'global' (os.homedir())")
@@ -119,6 +127,18 @@ program
 
     // Merge positional [task] with --task: positional takes precedence if both are given
     const task = taskArg ?? opts.task;
+
+    // Resolve the engine name: a dedicated per-engine flag (--lean, --simple, ...) takes
+    // precedence over the generic --engine <name> option. If none is given, --engine's
+    // default ("react") applies. This keeps every registered engine reachable as a
+    // first-class, discoverable CLI flag while preserving --engine <name> as the generic
+    // escape hatch for engines registered later.
+    //
+    // The flag list is derived from the registry (listEngines()) rather than hardcoded, so
+    // registering a new engine in EngineRegistry.ts automatically makes its per-engine flag
+    // resolvable here — no drift between the registry and the CLI flag resolution.
+    const engineFlag = listEngines().find((name) => opts[name] === true);
+    const engineName = engineFlag ?? opts.engine;
 
     if (opts.index) {
       const result = await buildIndex(cwd);
@@ -243,7 +263,7 @@ program
         if (useLlm) {
           // Send to LLM with remote deploy context
           const llm = new DeepSeekClient(llmConfig, telemetry);
-          const engine = createEngine(opts.engine, { llm, telemetry, io, options: { cwd, planMode: "always" } });
+          const engine = createEngine(engineName, { llm, telemetry, io, options: { cwd, planMode: "always" } });
           console.log(`🚀 Remote deploy mode: sending to LLM as devops task (target: ${remoteHost})...\n`);
           await engine.run(
             `Deploy the xcoder stack to remote host ${remoteHost} via SSH. ` +
@@ -281,7 +301,7 @@ program
       } else if (useLlm) {
         // ── Local Deploy via LLM ─────────────────────────────────────────
         const llm = new DeepSeekClient(llmConfig, telemetry);
-        const engine = createEngine(opts.engine, { llm, telemetry, io, options: { cwd, planMode: "always" } });
+        const engine = createEngine(engineName, { llm, telemetry, io, options: { cwd, planMode: "always" } });
         console.log("🚀 Deploy mode: sending to LLM as devops task...\n");
         await engine.run(
           "Deploy the xcoder stack using docker compose. " +
@@ -316,7 +336,7 @@ program
     if (opts.auto) orchestratorOpts.auto = true;
 
     const llm = new DeepSeekClient(llmConfig, telemetry);
-    const engine = createEngine(opts.engine, { llm, telemetry, io, options: orchestratorOpts });
+    const engine = createEngine(engineName, { llm, telemetry, io, options: orchestratorOpts });
 
     if (task) {
       await engine.run(task);

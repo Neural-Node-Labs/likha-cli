@@ -99,12 +99,16 @@ registerEngine("react", (deps) => new ReActOrchestrator(deps.llm, deps.telemetry
 | **LeanEngine** | `lean` | 聚焦的自包含 ReAct 循环；支持 V2 生命周期 |
 | **LangGraphEngine** | `langgraph` | 基于 `@langchain/langgraph` 的 StateGraph，显式两节点状态机（agent ↔ tools）；支持 V2 生命周期 |
 | **SwarmEngine** | `swarm` | 并行 swarm 编排，带 WBS 分解与并发代理分发；支持 V2 生命周期 |
+| **SimpleReactEngine** | `simple` | 极简 ReAct 循环，无 Plan 模式、阶段规划或目标验证重试 |
+| **AgenticEngine** | `agentic` | 带可注入 ThinkFn 的确定性 agentic ReAct 循环 |
+| **BrainEngine** | `brain` | 通过共享 MultiRoleRouter 将任务路由到 ≥2 个角色 |
+| **ProcedureEngine** | `procedure` | 两步式流程生成加本地步骤执行 |
 
 也可以编程方式创建引擎：
 
 ```ts
 const engine = createEngine("lean", { llm, telemetry, io, options });
-console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
+console.log(listEngines()); // ["react", "lean", "simple", "swarm", "langgraph", "agentic", "brain", "procedure"]
 ```
 
 ## 技能系统

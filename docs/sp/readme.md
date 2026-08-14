@@ -7,12 +7,12 @@
 
 likha es un agente CLI que sigue el patrón **ReAct**: piensa de forma iterativa sobre la tarea, llama a herramientas para recopilar información o hacer cambios, observa los resultados y repite hasta completar la tarea. Admite múltiples motores de orquestación, directivas de habilidades conectables en caliente, planificación por fases, un servidor HTTP API, una interfaz React y un mecanismo de autocuración integrado que detecta cuando el agente está atascado.
 
-La versión 0.2.0 incluye cuatro motores de orquestación intercambiables (`react` por defecto, `lean`, `langgraph`, `swarm`) y más de 30 habilidades especializadas cargadas desde `agent/skills/`.
+La versión 0.2.0 incluye ocho motores de orquestación intercambiables (`react` por defecto, `lean`, `simple`, `swarm`, `langgraph`, `agentic`, `brain`, `procedure`) y más de 30 habilidades especializadas cargadas desde `agent/skills/`.
 
 ## Características principales
 
 - **Bucle ReAct** — fases Búsqueda → Acción → Validación
-- **Implementaciones de motores múltiples** — ReAct estándar, LeanEngine, LangGraph y Swarm
+- **Implementaciones de motores múltiples** — ReAct estándar, LeanEngine, SimpleReactEngine, LangGraph, Swarm, AgenticEngine, BrainEngine y ProcedureEngine
 - **Sistema de habilidades conectable en caliente** — más de 30 habilidades especializadas (programador, arquitecto, devops, tester, etc.) cargadas desde `agent/skills/`
 - **Modo Plan** — genera un plan de tarea antes de la ejecución, con aprobación del usuario
 - **Planificación por fases** — divide tareas complejas en fases secuenciales con contexto aislado

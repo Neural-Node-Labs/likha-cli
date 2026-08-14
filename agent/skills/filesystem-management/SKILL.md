@@ -1,4 +1,3 @@
-<!-- ronin:version 2 | ronin:task task-b88b43 | ronin:updated 2026-08-13T05:51:17.368Z | ronin:subtask code-st-5a7e6a -->
 ---
 name: filesystem-management
 role: Filesystem/Workspace Manager
@@ -17,6 +16,8 @@ requires_tools: [glob_tool, grep_tool, read_tool, write_edit_tool, run_command_t
   write_file_tool, validate_file_tool]
 composes_with: [programmer, architect, devops, analyst]
 ---
+
+<!-- ronin:version 2 | ronin:task task-b88b43 | ronin:updated 2026-08-13T05:51:17.368Z | ronin:subtask code-st-5a7e6a -->
 
 ## Efficient Filesystem Protocol
 - **Search-first** — locate with find_files_tool / search_code_tool / search_ast_tool / get_dependency_graph_tool before starting full reads.

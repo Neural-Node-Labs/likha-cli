@@ -7,12 +7,12 @@
 
 likha 遵循 **ReAct**（Reasoning + Acting）模式：它在循环中思考任务、调用工具获取信息或做出修改、观察结果，并重复这一过程，直到任务完成。它支持多种编排引擎、可热插拔的技能指令、阶段规划、HTTP API 服务器、React UI，以及内置的自愈机制，用于检测代理是否陷入停滞。
 
-版本 0.2.0 内置四个可互换的编排引擎（默认 `react`，以及 `lean`、`langgraph`、`swarm`），并从 `agent/skills/` 加载 30+ 个专业技能。
+版本 0.2.0 内置八个可互换的编排引擎（默认 `react`，以及 `lean`、`simple`、`swarm`、`langgraph`、`agentic`、`brain`、`procedure`），并从 `agent/skills/` 加载 30+ 个专业技能。
 
 ## 主要功能
 
 - **ReAct 循环** — 搜索 → 行动 → 验证 阶段
-- **多引擎实现** — 标准 ReAct、LeanEngine、LangGraph、Swarm
+- **多引擎实现** — 标准 ReAct、LeanEngine、SimpleReactEngine、LangGraph、Swarm、AgenticEngine、BrainEngine、ProcedureEngine
 - **可热插拔技能系统** — 30+ 个专业技能（programmer、architect、devops、tester 等），从 `agent/skills/` 加载
 - **计划模式（Plan Mode）** — 执行前生成任务计划，并请求用户批准
 - **阶段规划（Phase Planning）** — 将复杂任务拆分为顺序阶段，各阶段上下文隔离

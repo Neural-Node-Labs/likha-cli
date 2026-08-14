@@ -82,7 +82,7 @@ May dalawang implementation na kasama:
 
 ## Engines
 
-Lahat ng apat na engine ay nagpapatupad ng `IReactEngine` / ng V2 lifecycle interface (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
+Lahat ng walong engine ay nagpapatupad ng `IReactEngine` / ng V2 lifecycle interface (`cancel`, `onProgress`, `getState`, `getLastMessages`, `getWorkspacePath`, `getIterationCount`):
 
 | Engine | Registration Name | Paglalarawan |
 |---|---|---|
@@ -90,12 +90,16 @@ Lahat ng apat na engine ay nagpapatupad ng `IReactEngine` / ng V2 lifecycle inte
 | **LeanEngine** | `lean` | Nakatutok at self-contained ReAct loop — ang core loop nang walang plan mode o subagents. Sinusuportahan ang V2 lifecycle |
 | **LangGraphEngine** | `langgraph` | ReAct loop na binuo sa `@langchain/langgraph`'s StateGraph na may explicit two-node state machine (agent ↔ tools). Sinusuportahan ang V2 lifecycle |
 | **SwarmEngine** | `swarm` | Parallel swarm orchestration na may WBS decomposition at concurrent agent dispatch. Sinusuportahan ang V2 lifecycle |
+| **SimpleReactEngine** | `simple` | Minimal na ReAct loop na walang Plan Mode, Phase Planning, o goal-validation retry |
+| **AgenticEngine** | `agentic` | Deterministic na agentic ReAct loop na may injectable na ThinkFn |
+| **BrainEngine** | `brain` | Niruruta ang isang task sa ≥2 roles sa pamamagitan ng shared MultiRoleRouter |
+| **ProcedureEngine** | `procedure` | Two-step na procedure generation kasama ang local step execution |
 
 Ang mga engine ay maaari ding likhain nang programmatically:
 
 ```ts
 const engine = createEngine("lean", { llm, telemetry, io, options });
-console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
+console.log(listEngines()); // ["react", "lean", "simple", "swarm", "langgraph", "agentic", "brain", "procedure"]
 ```
 
 ## Skill System
