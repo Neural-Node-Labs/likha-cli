@@ -1,11 +1,11 @@
 <!-- ronin:version 2 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:17:44.147Z | ronin:subtask code-st-82c66c -->
-# xcoder 概览
+# likha 概览
 
-**xcoder** 是一个用 TypeScript（Node.js）编写的 ReAct CLI 代理，内置可热插拔的角色技能，默认使用 DeepSeek 作为 LLM 提供方。LLM 后端由配置驱动：DeepSeek 是默认提供方，任何与 OpenAI 兼容的提供方或 Anthropic 都可通过编辑 `agent/config/llm.yaml` 并设置对应的 API 密钥环境变量来选择——**无需修改任何代码**。本文档是简体中文文档集的入口。
+**likha** 是一个用 TypeScript（Node.js）编写的 ReAct CLI 代理，内置可热插拔的角色技能，默认使用 DeepSeek 作为 LLM 提供方。LLM 后端由配置驱动：DeepSeek 是默认提供方，任何与 OpenAI 兼容的提供方或 Anthropic 都可通过编辑 `agent/config/llm.yaml` 并设置对应的 API 密钥环境变量来选择——**无需修改任何代码**。本文档是简体中文文档集的入口。
 
 ## 概述
 
-xcoder 遵循 **ReAct**（Reasoning + Acting）模式：它在循环中思考任务、调用工具获取信息或做出修改、观察结果，并重复这一过程，直到任务完成。它支持多种编排引擎、可热插拔的技能指令、阶段规划、HTTP API 服务器、React UI，以及内置的自愈机制，用于检测代理是否陷入停滞。
+likha 遵循 **ReAct**（Reasoning + Acting）模式：它在循环中思考任务、调用工具获取信息或做出修改、观察结果，并重复这一过程，直到任务完成。它支持多种编排引擎、可热插拔的技能指令、阶段规划、HTTP API 服务器、React UI，以及内置的自愈机制，用于检测代理是否陷入停滞。
 
 版本 0.2.0 内置四个可互换的编排引擎（默认 `react`，以及 `lean`、`langgraph`、`swarm`），并从 `agent/skills/` 加载 30+ 个专业技能。
 
@@ -25,7 +25,7 @@ xcoder 遵循 **ReAct**（Reasoning + Acting）模式：它在循环中思考任
 请先在环境中或 `.env` 文件中设置 `DEEPSEEK_API_KEY`，然后安装依赖并构建：
 
 ```bash
-npm run xcoder:install
+npm run likha:install
 npm run build
 ```
 

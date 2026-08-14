@@ -1,7 +1,7 @@
 <!-- ronin:version 1 | ronin:task task-ae5e2e | ronin:updated 2026-08-11T16:59:09.860Z | ronin:subtask code-st-d23750 -->
-# xcoder — Arquitectura
+# likha — Arquitectura
 
-Cómo funciona xcoder internamente: objetivos de diseño, abstracciones principales, motores, sistema de habilidades, servidor API e interfaz, topología de despliegue, referencia de directorios y puntos de extensión.
+Cómo funciona likha internamente: objetivos de diseño, abstracciones principales, motores, sistema de habilidades, servidor API e interfaz, topología de despliegue, referencia de directorios y puntos de extensión.
 
 ## Objetivos de diseño
 
@@ -9,7 +9,7 @@ La arquitectura se organiza en torno a cuatro objetivos:
 
 1. **El motor de orquestación es intercambiable.** El bucle ReAct (`ReActOrchestrator`) es una implementación de la interfaz `IReactEngine`, no una dependencia codificada de la CLI o la API.
 2. **La presentación no es asunto del motor.** El motor informa el progreso y solicita aprobación a través de una interfaz `AgentIO`; no tiene idea de si se comunica con una terminal, una solicitud HTTP o un arnés de prueba.
-3. **La CLI y la base de datos están desacopladas.** Una ejecución `xcoder --task "..."` nunca abre una conexión de base de datos. Solo el servidor API (que respalda la interfaz) persiste en la base de datos.
+3. **La CLI y la base de datos están desacopladas.** Una ejecución `likha --task "..."` nunca abre una conexión de base de datos. Solo el servidor API (que respalda la interfaz) persiste en la base de datos.
 4. **El comportamiento se extiende mediante habilidades, no bifurcaciones.** La experiencia de dominio vive en `agent/skills/*/SKILL.md` y se selecciona en tiempo de ejecución mediante enrutamiento de palabras clave, no se compila en el bucle central.
 
 ## Diagrama del sistema
@@ -117,7 +117,7 @@ markdown body (Process / Instructions / Strategies / Experience)
 
 `route(taskDescription)` convierte la tarea a minúsculas y cuenta cuántos desencadenantes son subcadenas literales de ella. **Esto es coincidencia de subcadenas simple sin límites de palabras** — un desencadenante como `"ux"` coincide dentro de `"SELinux"`, `"pod"` coincide dentro de `"podcast"` y `"git"` coincide dentro de `"digital"`. Por lo tanto, los desencadenantes deben elegirse de forma defensiva (frases más largas, o límites explícitos de espacio final como `"the pod "`).
 
-Ejecuta `xcoder --skills` para obtener la lista en vivo de habilidades con roles y desencadenantes.
+Ejecuta `likha --skills` para obtener la lista en vivo de habilidades con roles y desencadenantes.
 
 ## Servidor API e interfaz
 
@@ -127,10 +127,10 @@ Ejecuta `xcoder --skills` para obtener la lista en vivo de habilidades con roles
 
 ## Topología de despliegue
 
-`xcoder --deploy --docker [--remote <ip>] [--llm true|false]`: 
+`likha --deploy --docker [--remote <ip>] [--llm true|false]`: 
 
 - **Sin `--remote`:** `docker compose up -d --build` localmente — directamente o, con `--llm true`, entregado al motor como tarea devops para que pueda diagnosticar y corregir una compilación fallida.
-- **Con `--remote <ip>`:** se conecta por SSH al host remoto (`REMOTE_SSH_USER`/`REMOTE_SSH_PASSWORD` desde `.env`) y despliega allí en su lugar; `--remote-path` predetermina a `/opt/xcoder`.
+- **Con `--remote <ip>`:** se conecta por SSH al host remoto (`REMOTE_SSH_USER`/`REMOTE_SSH_PASSWORD` desde `.env`) y despliega allí en su lugar; `--remote-path` predetermina a `/opt/likha`.
 
 ## Referencia de directorios
 

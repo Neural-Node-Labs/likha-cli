@@ -1,11 +1,11 @@
 <!-- ronin:version 2 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:17:47.561Z | ronin:subtask code-st-82c66c -->
-# xcoder — Pangkalahatang-ideya
+# likha — Pangkalahatang-ideya
 
-Ang **xcoder** ay isang ReAct CLI agent na nakasulat sa TypeScript para sa Node.js. Ginagamit nito ang ReAct (Reasoning + Acting) loop kasama ang mga hot-pluggable na role skills, at ang DeepSeek ay ang default na LLM provider nito. Ang LLM backend ay config-driven: ang DeepSeek ang default, at sinumang OpenAI-compatible provider o Anthropic ay mapipili sa pamamagitan ng `agent/config/llm.yaml` kasama ang isang API key environment variable — **walang code changes**. Ito ang entry point sa dokumentasyong Tagalog.
+Ang **likha** ay isang ReAct CLI agent na nakasulat sa TypeScript para sa Node.js. Ginagamit nito ang ReAct (Reasoning + Acting) loop kasama ang mga hot-pluggable na role skills, at ang DeepSeek ay ang default na LLM provider nito. Ang LLM backend ay config-driven: ang DeepSeek ang default, at sinumang OpenAI-compatible provider o Anthropic ay mapipili sa pamamagitan ng `agent/config/llm.yaml` kasama ang isang API key environment variable — **walang code changes**. Ito ang entry point sa dokumentasyong Tagalog.
 
 ## Pangkalahatang-ideya
 
-Ang xcoder ay isang CLI agent na sumusunod sa **ReAct** pattern: paulit-ulit itong nag-iisip tungkol sa isang task, tumatawag sa mga tool para kumuha ng impormasyon o gumawa ng mga pagbabago, inoobserbahan ang mga resulta, at inuulit ang proseso hanggang sa matapos ang task. Sinusuportahan nito ang maraming orchestration engines, hot-pluggable na skill directives, phase planning, isang HTTP API server, isang React UI, at isang built-in na self-healing mechanism na nakakakita kapag ang agent ay natigil.
+Ang likha ay isang CLI agent na sumusunod sa **ReAct** pattern: paulit-ulit itong nag-iisip tungkol sa isang task, tumatawag sa mga tool para kumuha ng impormasyon o gumawa ng mga pagbabago, inoobserbahan ang mga resulta, at inuulit ang proseso hanggang sa matapos ang task. Sinusuportahan nito ang maraming orchestration engines, hot-pluggable na skill directives, phase planning, isang HTTP API server, isang React UI, at isang built-in na self-healing mechanism na nakakakita kapag ang agent ay natigil.
 
 Ang bersyon 0.2.0 ay may apat na interchangeable orchestration engines (`react` default, `lean`, `langgraph`, `swarm`) at higit sa 30 na specialized skills na nilo-load mula sa `agent/skills/`.
 
@@ -25,7 +25,7 @@ Ang bersyon 0.2.0 ay may apat na interchangeable orchestration engines (`react` 
 Siguraduhin na ang `DEEPSEEK_API_KEY` ay naka-set sa iyong environment o sa `.env` file, pagkatapos ay i-install at i-build:
 
 ```bash
-npm run xcoder:install
+npm run likha:install
 npm run build
 ```
 

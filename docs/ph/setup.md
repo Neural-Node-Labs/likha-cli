@@ -1,7 +1,7 @@
 <!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:47.078Z | ronin:subtask code-st-82c66c -->
-# xcoder — Pag-setup
+# likha — Pag-setup
 
-Gabay ito sa pag-install ng xcoder, pag-configure ng environment nito, pag-initialize ng database, at pag-setup ng development workflow.
+Gabay ito sa pag-install ng likha, pag-configure ng environment nito, pag-initialize ng database, at pag-setup ng development workflow.
 
 ## Mga Kinakailangan
 
@@ -14,7 +14,7 @@ Gabay ito sa pag-install ng xcoder, pag-configure ng environment nito, pag-initi
 I-install ang mga dependencies mula sa project root (kasama nito ang pag-install ng `ui/` frontend dependencies):
 
 ```bash
-npm run xcoder:install
+npm run likha:install
 ```
 
 Pagkatapos ay i-build ang TypeScript sources (kinokopya rin ng `build` script ang `agent/` config directory papunta sa `dist/config/`):
@@ -50,7 +50,7 @@ Ang mga sumusunod na environment variables ay suportado:
 | `MAX_ITERATIONS` | Ceiling ng ReAct loop iterations bawat round |
 | `XCODER_RESTRICT_TO_WORKSPACE` | Safety rail: tinatanggihan ang `read_tool`/`write_edit_tool` paths sa labas ng working directory |
 | `DATABASE_TYPE` | Database backend: `sqlite` (default) o `postgres` |
-| `DATABASE_SQLITE_PATH` | Path sa SQLite database file (default: `~/.xcoder/data/xcoder.db`) |
+| `DATABASE_SQLITE_PATH` | Path sa SQLite database file (default: `~/.likha/data/likha.db`) |
 | `DATABASE_URL` | PostgreSQL connection string (na-override nito ang mga indibidwal na params sa ibaba) |
 | `DATABASE_HOST` | PostgreSQL host |
 | `DATABASE_PORT` | PostgreSQL port |
@@ -79,7 +79,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
-# DATABASE_URL=postgresql://user:pass@localhost:5432/xcoder
+# DATABASE_URL=postgresql://user:pass@localhost:5432/likha
 # REMOTE_SSH_USER=deploy
 # REMOTE_SSH_PASSWORD=your-password
 # XCODER_SSH_TARGETS=host1:22,host2:22
@@ -89,9 +89,9 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 ### LLM Providers
 
-Ang LLM backend ng xcoder ay config-driven: **ang DeepSeek ang default provider**, ngunit sinumang OpenAI-compatible provider (OpenAI, OpenRouter, Groq, Ollama, company proxy, …) at ang Anthropic ay maaaring piliin sa pamamagitan ng pag-edit ng `agent/config/llm.yaml` — **walang code changes** at walang CLI flag para sa paglipat ng provider (ang paglipat ng provider ay sa pamamagitan lamang ng config file).
+Ang LLM backend ng likha ay config-driven: **ang DeepSeek ang default provider**, ngunit sinumang OpenAI-compatible provider (OpenAI, OpenRouter, Groq, Ollama, company proxy, …) at ang Anthropic ay maaaring piliin sa pamamagitan ng pag-edit ng `agent/config/llm.yaml` — **walang code changes** at walang CLI flag para sa paglipat ng provider (ang paglipat ng provider ay sa pamamagitan lamang ng config file).
 
-Ang mga key ay hindi kailanman inilalagay sa YAML: ang field na `api_key_env` ay nagpapangalan ng environment variable na may hawak ng key. I-set nang eksakto ang variable na iyon (sa iyong environment o sa `.env` file), at pagkatapos i-edit ang `agent/config/llm.yaml`, i-restart ang anumang tumatakbong xcoder process.
+Ang mga key ay hindi kailanman inilalagay sa YAML: ang field na `api_key_env` ay nagpapangalan ng environment variable na may hawak ng key. I-set nang eksakto ang variable na iyon (sa iyong environment o sa `.env` file), at pagkatapos i-edit ang `agent/config/llm.yaml`, i-restart ang anumang tumatakbong likha process.
 
 **Paglipat sa isang OpenAI-compatible provider (halimbawa: OpenAI):**
 
@@ -126,7 +126,7 @@ Routing rules:
 3. Ang `endpoint` default ay `/chat/completions` kapag hindi naka-set.
 4. Hindi pinapansin ng `anthropic` ang `base_url` at `endpoint`.
 
-> Ang `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` ay legacy variables at **hindi binabasa** ng xcoder.
+> Ang `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` ay legacy variables at **hindi binabasa** ng likha.
 
 ## Initialization ng Database
 

@@ -1,7 +1,7 @@
 <!-- ronin:version 1 | ronin:task task-5e8fe0 | ronin:updated 2026-08-11T16:39:04.678Z | ronin:subtask code-st-be6a3a -->
-# xcoder 架构蓝图
+# likha 架构蓝图
 
-本文档说明 xcoder 的内部工作原理：设计目标、核心抽象、引擎、技能系统、API 服务器与 UI、部署拓扑、目录参考、扩展点与已知缺口。
+本文档说明 likha 的内部工作原理：设计目标、核心抽象、引擎、技能系统、API 服务器与 UI、部署拓扑、目录参考、扩展点与已知缺口。
 
 ## 设计目标
 
@@ -9,7 +9,7 @@
 
 1. **编排引擎可替换。** ReAct 循环（`ReActOrchestrator`）是 `IReactEngine` 接口的一种实现，而不是 CLI 或 API 的硬编码依赖。
 2. **表现层不关心引擎细节。** 引擎通过 `AgentIO` 接口报告进度并请求批准；它不关心自己是在与终端、HTTP 请求还是测试框架对话。
-3. **CLI 与数据库解耦。** `xcoder --task "..."` 运行永远不会打开数据库连接。只有 API 服务器（支撑 UI）向数据库持久化。
+3. **CLI 与数据库解耦。** `likha --task "..."` 运行永远不会打开数据库连接。只有 API 服务器（支撑 UI）向数据库持久化。
 4. **行为通过技能扩展，而不是 fork。** 领域知识位于 `agent/skills/*/SKILL.md`，在运行时通过关键词路由选择，而不是编译进核心循环。
 
 ## 系统图
@@ -126,7 +126,7 @@ markdown body (Process / Instructions / Strategies / Experience)
 
 `route(taskDescription)` 将任务转小写，并统计每个技能的触发词有多少个字面子串出现在任务中。**这是不带词边界的纯子串匹配** — `"ux"` 会匹配到 `"SELinux"`，`"pod"` 会匹配到 `"podcast"`，`"git"` 会匹配到 `"digital"`。因此触发词必须防御性地设计（更长的短语，或显式的尾随空格边界，如 `"the pod "`）。
 
-运行 `xcoder --skills` 可查看带角色与触发词的活动技能列表。
+运行 `likha --skills` 可查看带角色与触发词的活动技能列表。
 
 ## 持久化边界
 
@@ -145,10 +145,10 @@ markdown body (Process / Instructions / Strategies / Experience)
 
 ## 部署拓扑
 
-`xcoder --deploy --docker [--remote <ip>] [--llm true|false]`：
+`likha --deploy --docker [--remote <ip>] [--llm true|false]`：
 
 - 无 `--remote`：本地 `docker compose up -d --build` — 直接执行，或（`--llm true`）把同一目标交给引擎作为 devops 任务诊断并修复失败的构建。
-- `--remote <ip>`：SSH 到远程主机（使用 `.env` 中的 `REMOTE_SSH_USER`/`REMOTE_SSH_PASSWORD`），在那里部署；`--remote-path` 默认 `/opt/xcoder`。
+- `--remote <ip>`：SSH 到远程主机（使用 `.env` 中的 `REMOTE_SSH_USER`/`REMOTE_SSH_PASSWORD`），在那里部署；`--remote-path` 默认 `/opt/likha`。
 
 ## 目录参考
 

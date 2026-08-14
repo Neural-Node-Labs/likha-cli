@@ -1,15 +1,15 @@
 <!-- ronin:version 6 | ronin:task task-ae5e2e | ronin:updated 2026-08-11T17:04:11.022Z | ronin:subtask code-st-d23750 -->
-# xcoder — Utilisation
+# likha — Utilisation
 
-Comment invoquer le CLI xcoder, exécuter des tâches, piloter le serveur API et l'interface, choisir un moteur d'orchestration et exécuter des tests.
+Comment invoquer le CLI likha, exécuter des tâches, piloter le serveur API et l'interface, choisir un moteur d'orchestration et exécuter des tests.
 
 ## Syntaxe CLI
 
 ```bash
-xcoder [task] [options]
+likha [task] [options]
 ```
 
-L'argument positionnel `[task]` équivaut à `--task <description>`. Après une compilation, le CLI se trouve dans `dist/cli/index.js`; les scripts npm et le binaire global `xcoder` y pointent tous deux.
+L'argument positionnel `[task]` équivaut à `--task <description>`. Après une compilation, le CLI se trouve dans `dist/cli/index.js`; les scripts npm et le binaire global `likha` y pointent tous deux.
 
 Points d'entrée courants:
 
@@ -30,42 +30,42 @@ Le principal exécuteur de tâches et les commandes de l'agent fonctionnent via 
 
 ```bash
 # Positional task (equivalent to --task)
-xcoder "Refactoriser le module d'authentification pour utiliser des jetons JWT"
+likha "Refactoriser le module d'authentification pour utiliser des jetons JWT"
 
 # Explicit task option with the lean engine
-xcoder --engine lean --task "Analyser la couverture des tests"
+likha --engine lean --task "Analyser la couverture des tests"
 
 # Interactive chat mode (workspace = current folder)
-xcoder --chat
+likha --chat
 
 # List all loaded skills and their trigger keywords
-xcoder --skills
+likha --skills
 
 # Index the current workspace into .agent/index/
-xcoder --index
+likha --index
 
 # Record a lesson to tasks/lessons.md
-xcoder --lesson "Toujours valider les chemins de fichiers avant d'écrire"
+likha --lesson "Toujours valider les chemins de fichiers avant d'écrire"
 
 # Fully autonomous mode — auto-answers ALL interactive prompts
-xcoder --auto --task "Configurer un pipeline CI/CD"
+likha --auto --task "Configurer un pipeline CI/CD"
 
 # Runtime diagnostics
-excoder --audit-react
-xcoder --diagnose-live
+elikha --audit-react
+likha --diagnose-live
 ```
 
 Le mode Plan est contrôlé explicitement:
 
 ```bash
 # Force Plan Mode on
-xcoder --plan --task "Tâche complexe"
+likha --plan --task "Tâche complexe"
 
 # Force Plan Mode off
-xcoder --no-plan --task "Tâche rapide"
+likha --no-plan --task "Tâche rapide"
 
 # Run as a single ReAct loop (disable phase planning)
-xcoder --single-phase --task "Tâche complexe"
+likha --single-phase --task "Tâche complexe"
 ```
 
 ## Serveur API et interface
@@ -76,13 +76,13 @@ Le serveur API basé sur Express expose des routes sous `/api/v1` (exécution de
 
 ```bash
 # Start the API server on the default port (3001)
-xcoder --serve
+likha --serve
 
 # Start the API server on an explicit port
-xcoder --serve --port 3001
+likha --serve --port 3001
 
 # npm script wrapper for the same command
-npm run xcoder:api
+npm run likha:api
 ```
 
 Le port et l'hôte peuvent aussi provenir de l'environnement:
@@ -100,18 +100,18 @@ L'interface React (Vite + TypeScript) s'exécute aux côtés du serveur API:
 
 ```bash
 # Start both API and UI
-xcoder --ui
+likha --ui
 
 # npm script wrapper: API on 3001 + UI dev server
-npm run xcoder:ui
+npm run likha:ui
 ```
 
 ## Choix du moteur
 
-xcoder est livré avec quatre moteurs d'orchestration interchangeables, tous implémentant les interfaces `IReactEngine` / `IReactEngineV2`. Sélectionnez-en un avec `--engine <name>`:
+likha est livré avec quatre moteurs d'orchestration interchangeables, tous implémentant les interfaces `IReactEngine` / `IReactEngineV2`. Sélectionnez-en un avec `--engine <name>`:
 
 ```bash
-xcoder --engine <name> --task "Lister tous les fichiers TypeScript dans src/"
+likha --engine <name> --task "Lister tous les fichiers TypeScript dans src/"
 ```
 
 | Moteur | Nom d'enregistrement | Description |

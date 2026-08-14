@@ -1,32 +1,32 @@
 <!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:21.304Z | ronin:subtask code-st-82c66c -->
 # Likha CLI Tools
 
-**likha** — a ReAct CLI agent with hot-pluggable role skills, DeepSeek by default.
+**likha** — isang ReAct CLI agent na may hot-pluggable role skills, DeepSeek bilang default.
 
-- **Version:** 0.2.0
-- **License:** MIT
-- **Engine:** TypeScript (Node.js), ReAct loop with multiple engine implementations
-- **LLM:** DeepSeek (default), with mock client for testing
+- **Bersyon:** 0.2.0
+- **Lisensya:** MIT
+- **Engine:** TypeScript (Node.js), ReAct loop na may maraming engine implementation
+- **LLM:** DeepSeek (default), may mock client para sa testing
 
 ---
 
-## Table of Contents
+## Talaan ng Nilalaman
 
-- [Overview](#overview)
-- [Quick Start](#quick-start)
-- [CLI Usage](#cli-usage)
-- [Architecture](#architecture)
-- [Engines](#engines)
+- [Pangkalahatang-ideya](#pangkalahatang-ideya)
+- [Mabilisang Simula](#mabilisang-simula)
+- [Paggamit ng CLI](#paggamit-ng-cli)
+- [Arkitektura](#arkitektura)
+- [Mga Engine](#mga-engine)
 - [Skill System](#skill-system)
 - [Plan Mode](#plan-mode)
 - [Phase Planning](#phase-planning)
-- [Self-Healing & Duplicate Detection](#self-healing--duplicate-detection)
+- [Self-Healing at Duplicate Detection](#self-healing-at-duplicate-detection)
 - [Goal Validation](#goal-validation)
 - [Context Compaction](#context-compaction)
 - [API Server](#api-server)
 - [UI](#ui)
 - [Deploy Mode](#deploy-mode)
-- [Audit & Diagnostics](#audit--diagnostics)
+- [Audit at Diagnostics](#audit-at-diagnostics)
 - [Configuration](#configuration)
 - [Database Layer](#database-layer)
 - [Development](#development)
@@ -34,57 +34,57 @@
 
 ---
 
-## Overview
+## Pangkalahatang-ideya
 
-likha is a CLI agent that follows the **ReAct** (Reasoning + Acting) pattern: it iteratively thinks about a task, calls tools to gather information or make changes, observes the results, and repeats until the task is complete. It supports multiple orchestration engines, hot-pluggable skill directives, phase planning, an HTTP API server, a React UI, and a built-in self-healing mechanism that detects when the agent is stuck.
+Ang likha ay isang CLI agent na sumusunod sa pattern na **ReAct** (Reasoning + Acting): paulit-ulit itong nag-iisip tungkol sa isang task, tumatawag ng mga tool para mangalap ng impormasyon o gumawa ng pagbabago, obserbahan ang mga resulta, at uulitin hanggang matapos ang task. Suportado nito ang maraming orchestration engine, hot-pluggable skill directives, phase planning, isang HTTP API server, isang React UI, at isang built-in self-healing mechanism na nakakatukoy kapag na-stuck ang agent.
 
-### Key Features
+### Mga Pangunahing Feature
 
-- **ReAct loop** with Search → Action → Validation phases
-- **Multiple engine implementations** — standard ReAct, LeanEngine, LangGraph, Swarm
-- **Hot-pluggable skill system** — 30+ specialized skills (programmer, architect, devops, tester, etc.) loaded from `agent/skills/`
-- **Plan Mode** — generates a task plan before execution, with user approval
-- **Phase Planning** — divides complex tasks into sequential phases with isolated context
-- **Duplicate action detection** — prevents wasteful repeated tool calls
-- **Duplicate iteration reason detection** — three-pass matching (exact, case-insensitive, fuzzy) for repeated reasoning
-- **Self-healing health scoring** — detects stalled progress and nudges the agent
-- **Goal validation** — independent verification before accepting completion
-- **Context compaction** — collapses stale file reads to save tokens (lean-token mode)
-- **Subagent delegation** — offloads work to isolated sub-agents
-- **Persistent task history** — file-based (`.agent/task-history.jsonl` + `.agent/task_history.md`) and database-backed (SQLite/Postgres)
-- **HTTP API server** — Express-based REST API for remote task execution
-- **React UI** — Vite + TypeScript frontend for managing tasks, plans, and telemetry
-- **Deploy mode** — local Docker Compose or remote SSH deployment
+- **ReAct loop** na may Search → Action → Validation phases
+- **Maraming engine implementation** — standard ReAct, LeanEngine, LangGraph, Swarm
+- **Hot-pluggable skill system** — 30+ specialized skills (programmer, architect, devops, tester, atbp.) na naka-load mula sa `agent/skills/`
+- **Plan Mode** — gumagawa ng task plan bago mag-execute, may pag-apruba ng user
+- **Phase Planning** — hinahati ang mga kumplikadong task sa sunud-sunod na phases na may isolated context
+- **Duplicate action detection** — pinipigilan ang mga sayang na paulit-ulit na tool call
+- **Duplicate iteration reason detection** — three-pass matching (exact, case-insensitive, fuzzy) para sa paulit-ulit na reasoning
+- **Self-healing health scoring** — nakakatukoy ng na-stall na progreso at nagbibigay ng nudge sa agent
+- **Goal validation** — independent na pag-verify bago tanggapin ang completion
+- **Context compaction** — kina-collapse ang mga lumang file reads para makatipid ng tokens (lean-token mode)
+- **Subagent delegation** — inilipat ang trabaho sa mga isolated sub-agent
+- **Persistent task history** — file-based (`.agent/task-history.jsonl` + `.agent/task_history.md`) at database-backed (SQLite/Postgres)
+- **HTTP API server** — Express-based REST API para sa remote task execution
+- **React UI** — Vite + TypeScript frontend para sa pamamahala ng tasks, plans, at telemetry
+- **Deploy mode** — local Docker Compose o remote SSH deployment
 - **ReAct audit** — automated bug-fixing scenario battery
 - **Live diagnostics** — 7-point ReAct diagnostic suite
 
 ---
 
-## Quick Start
+## Mabilisang Simula
 
 ```bash
-# Install dependencies
+# I-install ang mga dependency
 npm run likha:install
 
 # Build
 npm run build
 
-# Run a task
+# Magpatakbo ng task
 npm start -- --task "List all TypeScript files in src/"
 
-# Or use the dev mode (no build needed)
+# O gamitin ang dev mode (hindi kailangan ng build)
 npm run dev -- --task "List all TypeScript files in src/"
 ```
 
-### Prerequisites
+### Mga Kinakailangan (Prerequisites)
 
 - **Node.js** >= 18
-- **DeepSeek API key** — set `DEEPSEEK_API_KEY` in your environment or `.env` file
-- **npm** (for UI dependencies)
+- **DeepSeek API key** — i-set ang `DEEPSEEK_API_KEY` sa iyong environment o `.env` file
+- **npm** (para sa UI dependencies)
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+Gumawa ng `.env` file sa project root:
 
 ```env
 DEEPSEEK_API_KEY=sk-your-key-here
@@ -102,107 +102,107 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 ---
 
-## CLI Usage
+## Paggamit ng CLI
 
 ```bash
 likha [task] [options]
 ```
 
-### Arguments
+### Mga Argumento
 
-| Argument | Description |
+| Argumento | Paglalarawan |
 |----------|-------------|
-| `[task]` | Task description — equivalent to `--task <description>` |
+| `[task]` | Deskripsyon ng task — katumbas ng `--task <description>` |
 
-### Options
+### Mga Option
 
-| Option | Description |
+| Option | Paglalarawan |
 |--------|-------------|
-| `--task <description>` | Execute a single task, asking for clarification if needed |
-| `--chat` | Enter interactive chat mode (workspace = current folder) |
-| `--index` | Index the current workspace into `.agent/index/` |
-| `--skills` | List all loaded skills and their trigger keywords |
-| `--lesson <text>` | Record a lesson to `tasks/lessons.md` (see likha.md Self-Improvement Loop) |
-| `--plan` | Force Plan Mode on, regardless of task complexity heuristic |
-| `--no-plan` | Force Plan Mode off, regardless of task complexity heuristic |
-| `--full-context-token` | Keep every historical copy of read_tool file snapshots in context instead of collapsing stale ones (see `src/core/contextCompaction.ts`); default: off, lean-token compaction is on |
-| `--single-phase` | Disable phase-based planning and run as a single ReAct loop; default: phase-planning is ON |
-| `--auto` | Fully autonomous mode — automatically answers 'yes' to ALL interactive prompts (plan approval, phase plan approval, iteration limit continuation, subagent continuation). The LLM drives end-to-end without any human intervention. Use this for CI/CD, automated testing, or any scenario where zero human input is desired. |
-| `--isolated-workspace` | Run tool operations against an isolated `./workspace-agent` copy instead of the live project files (see `src/core/workspaceManager.ts`); default: off |
-| `--engine <name>` | Orchestration engine to use (default: `react`). Registered engines: `react`, `lean`, `langgraph`, `swarm`. See `src/core/engine/EngineRegistry.ts` to register another implementation. |
-| `--serve` | Start the likha HTTP API server |
-| `--ui` | Start both the likha HTTP API server and the UI frontend |
-| `--port <number>` | Port for the API server (default: 3001) |
-| `--host <address>` | Host for the API server (default: 0.0.0.0) |
-| `--deploy` | Trigger deploy mode (Docker Compose) |
-| `--docker` | Use Docker Compose for deployment |
-| `--llm <boolean>` | Send deploy task to the LLM as a devops task |
-| `--remote <ip>` | Remote host IP to deploy to |
-| `--remote-path <path>` | Remote directory path for deployment (default: `/opt/likha`) |
-| `--audit-react` | Run the built-in bug-fixing scenario battery through the real orchestrator and report on how it performed |
-| `--audit-out <path>` | Where to write the audit report markdown (default: `reports/react-audit-<timestamp>.md`) |
-| `--diagnose-live` | Run the 7-point ReAct diagnostic suite against the real configured LLM: iteration stopping, restart-approval, duplicate-action avoidance, tool/skill usage, ground-up deployable app, bug fixing, and full SDLC |
-| `--diagnose-out <path>` | Where to write the diagnostics report |
+| `--task <description>` | Mag-execute ng isang task, magtatanong ng paglilinaw kung kinakailangan |
+| `--chat` | Pumasok sa interactive chat mode (workspace = kasalukuyang folder) |
+| `--index` | I-index ang kasalukuyang workspace sa `.agent/index/` |
+| `--skills` | Ilista ang lahat ng naka-load na skills at ang kanilang trigger keywords |
+| `--lesson <text>` | Mag-record ng lesson sa `tasks/lessons.md` (tingnan ang likha.md Self-Improvement Loop) |
+| `--plan` | Sapilitang i-on ang Plan Mode, anuman ang task complexity heuristic |
+| `--no-plan` | Sapilitang i-off ang Plan Mode, anuman ang task complexity heuristic |
+| `--full-context-token` | Panatilihin ang bawat historical copy ng read_tool file snapshots sa context sa halip na i-collapse ang mga luma; default: naka-off, naka-on ang lean-token compaction |
+| `--single-phase` | I-disable ang phase-based planning at magpatakbo bilang isang solong ReAct loop; default: naka-ON ang phase-planning |
+| `--auto` | Fully autonomous mode — awtomatikong sinasagot ng 'yes' ang LAHAT ng interactive prompts (plan approval, phase plan approval, iteration limit continuation, subagent continuation). Buong dinadala ng LLM mula simula hanggang katapusan nang walang human intervention. Gamitin ito para sa CI/CD, automated testing, o anumang scenario na kailangan ng zero human input. |
+| `--isolated-workspace` | Magpatakbo ng tool operations laban sa isang isolated `./workspace-agent` copy sa halip na sa live project files (tingnan ang `src/core/workspaceManager.ts`); default: naka-off |
+| `--engine <name>` | Orchestration engine na gagamitin (default: `react`). Mga rehistradong engine: `react`, `lean`, `langgraph`, `swarm`. Tingnan ang `src/core/engine/EngineRegistry.ts` para mag-rehistro ng ibang implementation. |
+| `--serve` | Simulan ang likha HTTP API server |
+| `--ui` | Simulan ang likha HTTP API server at ang UI frontend |
+| `--port <number>` | Port para sa API server (default: 3001) |
+| `--host <address>` | Host para sa API server (default: 0.0.0.0) |
+| `--deploy` | I-trigger ang deploy mode (Docker Compose) |
+| `--docker` | Gamitin ang Docker Compose para sa deployment |
+| `--llm <boolean>` | Ipadala ang deploy task sa LLM bilang isang devops task |
+| `--remote <ip>` | Remote host IP na pagde-deploy-han |
+| `--remote-path <path>` | Remote directory path para sa deployment (default: `/opt/likha`) |
+| `--audit-react` | Patakbuhin ang built-in bug-fixing scenario battery sa pamamagitan ng tunay na orchestrator at mag-ulat kung paano ito nag-perform |
+| `--audit-out <path>` | Kung saan isusulat ang audit report markdown (default: `reports/react-audit-<timestamp>.md`) |
+| `--diagnose-live` | Patakbuhin ang 7-point ReAct diagnostic suite laban sa tunay na na-configure na LLM: iteration stopping, restart-approval, duplicate-action avoidance, tool/skill usage, ground-up deployable app, bug fixing, at full SDLC |
+| `--diagnose-out <path>` | Kung saan isusulat ang diagnostics report |
 
-### Examples
+### Mga Halimbawa
 
 ```bash
-# Run a single task
+# Magpatakbo ng isang task
 likha "Refactor the authentication module to use JWT tokens"
 
 # Interactive chat mode
 likha --chat
 
-# List available skills
+# Ilista ang mga available na skills
 likha --skills
 
-# Index the workspace
+# I-index ang workspace
 likha --index
 
-# Record a lesson
+# Mag-record ng lesson
 likha --lesson "Always validate file paths before writing"
 
-# Use the LangGraph engine
+# Gamitin ang LangGraph engine
 likha --engine langgraph --task "Analyze the test coverage"
 
-# Start the API server
+# Simulan ang API server
 likha --serve --port 3001
 
-# Start the API + UI
+# Simulan ang API + UI
 likha --ui
 
-# Deploy via Docker Compose
+# Mag-deploy gamit ang Docker Compose
 likha --deploy --docker
 
-# Deploy to a remote host
+# Mag-deploy sa isang remote host
 likha --deploy --docker --remote 192.168.1.100
 
-# Run in fully autonomous mode
+# Magpatakbo sa fully autonomous mode
 likha --auto --task "Set up CI/CD pipeline"
 
-# Run the ReAct audit
+# Patakbuhin ang ReAct audit
 likha --audit-react
 
-# Run live diagnostics
+# Patakbuhin ang live diagnostics
 likha --diagnose-live
 ```
 
 ---
 
-## Architecture
+## Arkitektura
 
 ```
 likha/
-├── agent/                  # Skill definitions and protocol files
+├── agent/                  # Mga skill definition at protocol files
 │   ├── likha.md           # Engineering protocol (system prompt)
-│   └── skills/             # 30+ skill definitions (SKILL.md per skill)
+│   └── skills/             # 30+ skill definitions (SKILL.md bawat skill)
 ├── src/
 │   ├── cli/                # CLI entry point (Commander)
-│   │   ├── index.ts        # CLI argument parsing and dispatch
+│   │   ├── index.ts        # CLI argument parsing at dispatch
 │   │   └── CliIO.ts        # Terminal I/O (spinner, prompts, colors)
 │   ├── api/                # Express API server
 │   │   ├── server.ts       # Server startup
-│   │   ├── routes.ts       # All API endpoints
+│   │   ├── routes.ts       # Lahat ng API endpoints
 │   │   ├── auth.ts         # Token-based authentication
 │   │   ├── types.ts        # API request/response types
 │   │   ├── projectRoutes.ts
@@ -214,20 +214,20 @@ likha/
 │   │   ├── taskHistoryStore.ts
 │   │   └── llmKeyStore.ts
 │   ├── core/               # Core orchestration logic
-│   │   ├── engine/         # Engine implementations
+│   │   ├── engine/         # Mga engine implementation
 │   │   │   ├── IReactEngine.ts       # Engine interface + V2 lifecycle
-│   │   │   ├── EngineRegistry.ts     # Factory pattern for engine creation
+│   │   │   ├── EngineRegistry.ts     # Factory pattern para sa paggawa ng engine
 │   │   │   ├── LeanEngine.ts         # Focused ReAct loop
 │   │   │   ├── LangGraphEngine.ts    # LangGraph StateGraph-based loop
 │   │   │   └── SwarmEngine.ts        # Parallel swarm orchestration
 │   │   ├── io/             # I/O abstractions
 │   │   │   ├── AgentIO.ts  # Abstract I/O interface
-│   │   │   └── AutoIO.ts   # Headless-safe I/O (no stdin)
+│   │   │   └── AutoIO.ts   # Headless-safe I/O (walang stdin)
 │   │   ├── orchestrator.ts # Full-featured ReAct orchestrator
-│   │   ├── types.ts        # Core types (LlmMessage, ReActStep, etc.)
+│   │   ├── types.ts        # Core types (LlmMessage, ReActStep, atbp.)
 │   │   ├── protocol.ts     # Protocol prompt builder
-│   │   ├── skillRegistry.ts # Skill loading and routing
-│   │   ├── stepScorer.ts   # Health scoring per step
+│   │   ├── skillRegistry.ts # Skill loading at routing
+│   │   ├── stepScorer.ts   # Health scoring bawat step
 │   │   ├── duplicateActionDetector.ts # Duplicate tool call detection
 │   │   ├── iterationReasonDedup.ts    # Duplicate reasoning detection
 │   │   ├── contextCompaction.ts       # Stale file read compaction
@@ -237,14 +237,14 @@ likha/
 │   │   ├── reactAuditor.ts            # Bug-fixing scenario battery
 │   │   └── liveDiagnostics.ts         # 7-point diagnostic suite
 │   ├── tools/              # Tool implementations (20+ tools)
-│   │   ├── toolSchemas.ts  # Tool definitions for LLM function calling
+│   │   ├── toolSchemas.ts  # Tool definitions para sa LLM function calling
 │   │   ├── toolDispatcher.ts # Tool call dispatch
 │   │   └── *.ts            # Individual tool implementations
 │   ├── llm/                # LLM client integrations
 │   │   ├── deepseekClient.ts # DeepSeek API client
-│   │   └── mockClient.ts   # Mock client for testing
+│   │   └── mockClient.ts   # Mock client para sa testing
 │   ├── config/             # Configuration loading
-│   │   └── loadConfig.ts   # LLM config from env/file
+│   │   └── loadConfig.ts   # LLM config mula sa env/file
 │   ├── db/                 # Database layer
 │   │   ├── sqliteClient.ts # SQLite client
 │   │   ├── postgresClient.ts # PostgreSQL client
@@ -256,19 +256,19 @@ likha/
 │   ├── remote/             # SSH/SCP remote operations
 │   │   ├── sshConnection.ts
 │   │   └── scpUpload.ts
-│   └── telemetry/          # Logging and telemetry
+│   └── telemetry/          # Logging at telemetry
 │       ├── logger.ts       # File-based telemetry
 │       └── postgresTelemetry.ts # DB-backed telemetry
 ├── ui/                     # React frontend (Vite + TypeScript)
 │   ├── src/
 │   │   ├── pages/          # Page components
 │   │   ├── components/     # Shared UI components
-│   │   └── App.tsx         # Root app with routing
+│   │   └── App.tsx         # Root app na may routing
 │   └── package.json
-├── tasks/                  # Generated task artifacts
-│   ├── todo.md             # Current plan
-│   ├── lessons.md          # Captured lessons
-│   └── *.md                # Phase reports and WBS files
+├── tasks/                  # Ginawang task artifacts
+│   ├── todo.md             # Kasalukuyang plano
+│   ├── lessons.md          # Naitalang mga lesson
+│   └── *.md                # Phase reports at WBS files
 └── .agent/                 # Agent metadata
     ├── index/              # Workspace index
     └── task-history.*      # Task history files
@@ -276,20 +276,20 @@ likha/
 
 ---
 
-## Engines
+## Mga Engine
 
-likha provides four engine implementations, all interchangeable via the `IReactEngine` interface. Select one with the `--engine` flag or via `EngineRegistry.createEngine()`.
+Nagbibigay ang likha ng apat na engine implementation, lahat ay maaaring magpalitan sa isa't isa sa pamamagitan ng `IReactEngine` interface. Pumili ng isa gamit ang `--engine` flag o sa pamamagitan ng `EngineRegistry.createEngine()`.
 
-| Engine | Flag | Description |
+| Engine | Flag | Paglalarawan |
 |--------|------|-------------|
-| **ReActOrchestrator** | `react` (default) | Full-featured engine with plan mode, phase planning, subagent delegation, goal validation, and self-healing |
-| **LeanEngine** | `lean` | Focused, self-contained ReAct loop — the core loop without plan mode or subagents. Supports V2 lifecycle (cancellation, progress observers, state tracking) |
-| **LangGraphEngine** | `langgraph` | ReAct loop built on `@langchain/langgraph`'s StateGraph with explicit two-node state machine (agent ↔ tools). Supports V2 lifecycle |
-| **SwarmEngine** | `swarm` | Parallel swarm orchestration with WBS decomposition and concurrent agent dispatch. Supports V2 lifecycle |
+| **ReActOrchestrator** | `react` (default) | Full-featured engine na may plan mode, phase planning, subagent delegation, goal validation, at self-healing |
+| **LeanEngine** | `lean` | Focused, self-contained ReAct loop — ang core loop na walang plan mode o subagents. Sumusuporta sa V2 lifecycle (cancellation, progress observers, state tracking) |
+| **LangGraphEngine** | `langgraph` | ReAct loop na binuo gamit ang StateGraph ng `@langchain/langgraph` na may explicit two-node state machine (agent ↔ tools). Sumusuporta sa V2 lifecycle |
+| **SwarmEngine** | `swarm` | Parallel swarm orchestration na may WBS decomposition at concurrent agent dispatch. Sumusuporta sa V2 lifecycle |
 
 ### Engine Registry
 
-Engines are registered via `EngineRegistry.ts` using a factory pattern:
+Ang mga engine ay nire-rehistro sa pamamagitan ng `EngineRegistry.ts` gamit ang factory pattern:
 
 ```typescript
 import { createEngine, listEngines } from "./core/engine/EngineRegistry.js";
@@ -300,7 +300,7 @@ console.log(listEngines()); // ["react", "lean", "langgraph", "swarm"]
 
 ### IReactEngineV2 Lifecycle
 
-The V2 interface adds lifecycle management to engines:
+Nagdaragdag ang V2 interface ng lifecycle management sa mga engine:
 
 ```typescript
 interface IReactEngineV2 extends IReactEngine {
@@ -317,26 +317,26 @@ interface IReactEngineV2 extends IReactEngine {
 
 ## Skill System
 
-likha has a hot-pluggable skill system. Skills are defined as markdown files with YAML frontmatter in `agent/skills/<name>/SKILL.md`. Each skill has:
+May hot-pluggable skill system ang likha. Ang mga skill ay tinukoy bilang markdown files na may YAML frontmatter sa `agent/skills/<name>/SKILL.md`. Ang bawat skill ay may:
 
-- **Trigger keywords** — matched against the task description to auto-select relevant skills
-- **Role** — the persona the LLM should adopt (e.g., "Software Engineer", "DevOps Engineer")
-- **Process/Strategies/Instructions** — injected into the system prompt when the skill is selected
-- **`composes_with`** — allows multi-skill composition (e.g., programmer + tester)
+- **Trigger keywords** — itinutugma laban sa task description para awtomatikong mapili ang mga relevant na skill
+- **Role** — ang persona na dapat gamitin ng LLM (hal., "Software Engineer", "DevOps Engineer")
+- **Process/Strategies/Instructions** — isinasama sa system prompt kapag napili ang skill
+- **`composes_with`** — nagbibigay-daan sa multi-skill composition (hal., programmer + tester)
 
-### Available Skills (30+)
+### Mga Available na Skill (30+)
 
 analyst, architect, aws, azure, conversation, devops, docker, docker-expert, filesystem-management, git-vcs, kafka, kubernetes, kubernetes-expert, openshift, pentester, performance-tester, playwright-ui-tester, programmer, qa-engineer, rca, redhat, rosa, scrum-framework, scrum-master-agent, secops, skill-authoring, software-architect, software-engineer, task-planning, tester, ubuntu, ui-ux-design, workspace-context
 
-### How Skills Are Loaded
+### Paano Naka-load ang mga Skill
 
-1. The `SkillRegistry` scans `agent/skills/` for `SKILL.md` files
-2. Each file's YAML frontmatter is parsed for name, role, triggers, and `composes_with`
-3. When a task is submitted, the registry matches trigger keywords against the task description
-4. Matched skills (and their `composes_with` companions) are injected into the LLM's system prompt
+1. Sinisiyasat ng `SkillRegistry` ang `agent/skills/` para sa mga `SKILL.md` file
+2. Ina-analyze ang YAML frontmatter ng bawat file para sa pangalan, role, triggers, at `composes_with`
+3. Kapag na-submit ang isang task, itinutugma ng registry ang trigger keywords laban sa task description
+4. Ang mga na-match na skill (at ang kanilang `composes_with` na kasama) ay isinasama sa system prompt ng LLM
 
 ```bash
-# List all skills and their triggers
+# Ilista ang lahat ng skills at ang kanilang triggers
 likha --skills
 ```
 
@@ -344,126 +344,126 @@ likha --skills
 
 ## Plan Mode
 
-Plan Mode generates a task plan before execution, following the engineering protocol's directive: *"Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)."*
+Gumagawa ang Plan Mode ng task plan bago mag-execute, sinusunod ang direktiba ng engineering protocol: *"Pumasok sa plan mode para sa ANUMANG hindi-trivial na task (3+ steps o architectural decisions)."*
 
-### How It Works
+### Paano Ito Gumagana
 
-1. **Trigger** — Plan mode activates when:
-   - `--plan` flag is set (force on)
-   - `planMode: "always"` in options
-   - `planMode: "auto"` (default) and 2+ skills are matched (indicating cross-cutting work)
-2. **Generation** — The LLM produces a markdown checklist (3-8 steps) without calling any tools
-3. **Approval** — The plan is written to `tasks/todo.md` and shown to the user for approval
-4. **Execution** — After approval, the ReAct loop executes the plan
-5. **Review** — After completion, a review section is appended to `tasks/todo.md`
+1. **Trigger** — nag-a-activate ang plan mode kapag:
+   - naka-set ang `--plan` flag (force on)
+   - `planMode: "always"` sa options
+   - `planMode: "auto"` (default) at 2+ skills ang na-match (nagpapahiwatig ng cross-cutting work)
+2. **Generation** — gumagawa ang LLM ng markdown checklist (3-8 steps) nang hindi tumatawag ng anumang tool
+3. **Approval** — isinusulat ang plano sa `tasks/todo.md` at ipinapakita sa user para sa pag-apruba
+4. **Execution** — pagkatapos ma-apruba, ise-execute ng ReAct loop ang plano
+5. **Review** — pagkatapos matapos, may idinaragdag na review section sa `tasks/todo.md`
 
 ### Two-Phase API Flow
 
-The API supports a two-phase flow for UI integration:
+Sinusuportahan ng API ang two-phase flow para sa UI integration:
 
-1. `POST /api/v1/chat/plan` — Generate a plan, returns a `sessionId`
-2. `POST /api/v1/chat/execute` — Execute the approved plan by `sessionId`
+1. `POST /api/v1/chat/plan` — Gumawa ng plano, ibinabalik ang isang `sessionId`
+2. `POST /api/v1/chat/execute` — I-execute ang naaprubahang plano gamit ang `sessionId`
 
 ---
 
 ## Phase Planning
 
-Phase Planning divides complex tasks into sequential phases, each running as a sub-orchestrator with isolated ReAct memory. This reduces per-phase token footprint at the cost of losing cross-phase context continuity.
+Hinahati ng Phase Planning ang mga kumplikadong task sa sunud-sunod na phases, na ang bawat isa ay tumatakbo bilang isang sub-orchestrator na may isolated ReAct memory. Binabawasan nito ang token footprint bawat phase, ngunit ang kapalit ay nawawala ang cross-phase context continuity.
 
-### How It Works
+### Paano Ito Gumagana
 
-1. **Decomposition** — The LLM divides the task into 2-5 sequential phases, each with its own goal
-2. **Approval** — The phase plan is shown to the user for approval
-3. **Execution** — Each phase runs sequentially as a sub-orchestrator with isolated ReAct memory
-4. **Summarization** — After each phase, the LLM summarizes what was accomplished for the next phase
-5. **Reporting** — Per-phase reports are saved to `tasks/[task-name]-phase-[N].md`; a WBS file is written to `tasks/[task-name]-wbs.md`
+1. **Decomposition** — hinahati ng LLM ang task sa 2-5 sunud-sunod na phase, bawat isa ay may sariling layunin
+2. **Approval** — ipinapakita ang phase plan sa user para sa pag-apruba
+3. **Execution** — bawat phase ay tumatakbo nang sunud-sunod bilang isang sub-orchestrator na may isolated ReAct memory
+4. **Summarization** — pagkatapos ng bawat phase, ibinubuod ng LLM kung ano ang naisagawa para sa susunod na phase
+5. **Reporting** — ang mga ulat bawat phase ay sine-save sa `tasks/[task-name]-phase-[N].md`; isang WBS file ang isinusulat sa `tasks/[task-name]-wbs.md`
 
-### Phase Artifacts
+### Mga Phase Artifact
 
-- `tasks/[task-name]-wbs.md` — Work Breakdown Structure, updated as phases complete
-- `tasks/[task-name]-phase-[N].md` — Per-phase reports with results and stats
-- Color-coded CLI output showing per-phase token usage and iteration counts
+- `tasks/[task-name]-wbs.md` — Work Breakdown Structure, na na-update habang natatapos ang mga phase
+- `tasks/[task-name]-phase-[N].md` — Mga ulat bawat phase na may resulta at estadistika
+- Color-coded na CLI output na nagpapakita ng token usage at iteration counts bawat phase
 
-### Disabling Phase Planning
+### Pag-disable sa Phase Planning
 
 ```bash
-# Run as a single ReAct loop (no phase planning)
+# Magpatakbo bilang isang solong ReAct loop (walang phase planning)
 likha --single-phase --task "Complex task"
 ```
 
 ---
 
-## Self-Healing & Duplicate Detection
+## Self-Healing at Duplicate Detection
 
-likha has a multi-layered self-healing system that detects when the agent is stuck and nudges it back on track.
+May multi-layered self-healing system ang likha na nakakatukoy kapag na-stuck ang agent at ibinabalik ito sa tamang direksyon.
 
 ### Health Scoring
 
-Two parallel health score systems track agent progress:
+Dalawang parallel health score system ang sumusubaybay sa progreso ng agent:
 
-1. **Step-level health** (`stepScorer.ts`) — A heuristic 0-100 score per tool step, based on:
-   - Did the tool call error? (-45 penalty)
-   - Is this a duplicate action? (-35 penalty)
-   - Is the iteration reason a duplicate? (exact: -25, case-insensitive: -20, fuzzy: -15)
-   - Did a write/edit/run_command succeed? (+10 reward)
-   - Rolling average over the last 5 steps
+1. **Step-level health** (`stepScorer.ts`) — Isang heuristic na 0-100 score bawat tool step, batay sa:
+   - Nagka-error ba ang tool call? (-45 na parusa)
+   - Ito ba ay isang duplicate action? (-35 na parusa)
+   - Duplicate ba ang iteration reason? (exact: -25, case-insensitive: -20, fuzzy: -15)
+   - Nagtagumpay ba ang isang write/edit/run_command? (+10 na reward)
+   - Rolling average sa huling 5 steps
 
-2. **Memory health score** (`types.ts`) — A 0.0-1.0 score with history, trend, and `ScoreEntry` array:
-   - LLM self-assessment (parses `score: X` from reasoning)
-   - Heuristic fallback (increment on success, decrement on error)
+2. **Memory health score** (`types.ts`) — Isang 0.0-1.0 score na may history, trend, at `ScoreEntry` array:
+   - LLM self-assessment (ina-analyze ang `score: X` mula sa reasoning)
+   - Heuristic fallback (dinadagdagan kapag nagtagumpay, binabawasan kapag nagka-error)
    - Trend tracking ("up", "down", "stable")
 
-When the rolling health score drops below 40, a one-time nudge is injected into context asking the model to reconsider its approach.
+Kapag bumaba sa ibaba ng 40 ang rolling health score, may isang beses na nudge na isinasama sa context na humihiling sa model na i-reconsider ang kanyang approach.
 
 ### Duplicate Action Detection
 
-`duplicateActionDetector.ts` detects when the LLM repeats the exact same tool call (same tool + same arguments) that already produced the same observation. This prevents wasteful loops like re-reading the same file or re-running the same command.
+Nakakatukoy ang `duplicateActionDetector.ts` kapag inulit ng LLM ang eksaktong parehong tool call (parehong tool + parehong arguments) na nakagawa na ng parehong obserbasyon. Pinipigilan nito ang mga sayang na loop tulad ng muling pagbabasa ng parehong file o muling pagpapatakbo ng parehong command.
 
 ### Duplicate Iteration Reason Detection
 
-`iterationReasonDedup.ts` detects when the LLM produces reasoning that is substantively the same as a previous iteration's reasoning. Uses a three-pass matching strategy:
+Nakakatukoy ang `iterationReasonDedup.ts` kapag gumawa ang LLM ng reasoning na sa esensya ay pareho sa reasoning ng nakaraang iteration. Gumagamit ito ng three-pass matching strategy:
 
-1. **Exact match** (trimmed string equality) — penalty: -25
-2. **Case-insensitive match** — penalty: -20
-3. **Fuzzy match** (Levenshtein similarity above 0.85 threshold) — penalty: -15
+1. **Exact match** (trimmed string equality) — parusa: -25
+2. **Case-insensitive match** — parusa: -20
+3. **Fuzzy match** (Levenshtein similarity na higit sa 0.85 threshold) — parusa: -15
 
-A rolling window (default: last 5 reasons) prevents flagging legitimately similar reasoning from earlier in a long task. Strings shorter than 20 characters are never fuzzy-matched.
+Isang rolling window (default: huling 5 reasons) ang pumipigil sa pag-flag ng lehitimong magkatulad na reasoning mula sa mas naunang bahagi ng mahabang task. Ang mga string na mas maikli sa 20 characters ay hindi kailanman fuzzy-matched.
 
-> **⚠️ Status Note:** The `thought` parameter for duplicate iteration reason detection is currently NOT passed by any of the four call sites (orchestrator.ts, LangGraphEngine.ts, LeanEngine.ts, SwarmEngine.ts). The feature is dormant in production — it only runs in unit tests.
+> **⚠️ Status Note:** Ang `thought` parameter para sa duplicate iteration reason detection ay kasalukuyang HINDI ipinapasa ng alinman sa apat na call site (orchestrator.ts, LangGraphEngine.ts, LeanEngine.ts, SwarmEngine.ts). Dormant ang feature na ito sa production — tumatakbo lamang ito sa unit tests.
 
 ---
 
 ## Goal Validation
 
-Before accepting a completion, likha runs the result past an independent validator (a second LLM call) that checks whether the claimed completion is actually supported by the recorded observations.
+Bago tanggapin ang isang completion, pinapadaan muna ng likha ang resulta sa isang independent na validator (isang pangalawang LLM call) na che-check kung talagang sinusuportahan ng mga naitalang obserbasyon ang inaangking completion.
 
-- **Enabled by default** (`validateGoal: true`)
-- **Max retries:** 2 (configurable via `maxValidatorRetries`)
-- **Rejection feedback:** When the validator rejects a claim, the rejection reason is fed back into context and the agent tries again
-- **Exhaustion:** After max retries, the final answer is accepted without verification
+- **Naka-enable bilang default** (`validateGoal: true`)
+- **Max retries:** 2 (nako-configure sa pamamagitan ng `maxValidatorRetries`)
+- **Rejection feedback:** Kapag na-reject ng validator ang isang claim, ang dahilan ng pagtanggi ay ibinabalik sa context at muling susubukan ng agent
+- **Exhaustion:** Pagkatapos ng max retries, tinatanggap ang huling sagot nang walang beripikasyon
 
 ---
 
 ## Context Compaction
 
-Context compaction (lean-token mode) is **enabled by default**. It collapses stale/superseded `read_tool` observations to save tokens.
+Ang context compaction (lean-token mode) ay **naka-enable bilang default**. Kina-collapse nito ang mga lumang/na-supersede na `read_tool` observations para makatipid ng tokens.
 
-### What It Does
+### Ano ang Ginagawa Nito
 
-- When a file is read or written again, every **strictly earlier** `read_tool` observation for that same path is collapsed to a short placeholder
-- The latest snapshot of any given file is always left intact
-- This also fixes a correctness issue: without compaction, old stale file snapshots stay in context looking just as authoritative as the current one
+- Kapag muling binasa o isinulat ang isang file, ang bawat **estrikto nang mas naunang** `read_tool` observation para sa parehong path ay kina-collapse sa isang maikling placeholder
+- Ang pinakahuling snapshot ng anumang file ay laging nananatiling buo
+- Nire-resolba rin nito ang isang correctness issue: kung walang compaction, ang mga lumang stale file snapshot ay nananatili sa context na mukhang kasing-authoritative ng kasalukuyan
 
-### What It Does NOT Touch
+### Ano ang Hindi Nito Ginagalaw
 
-- Assistant messages' `tool_calls` and `reasoning_content` — DeepSeek's thinking-mode API requires these to be preserved
-- `tool_call_id` linkage — never broken
-- Non-read_tool observations
+- Ang `tool_calls` at `reasoning_content` ng assistant messages — kinakailangan ng thinking-mode API ng DeepSeek na ito ay mapanatili
+- Ang `tool_call_id` linkage — hindi kailanman nasisira
+- Mga observation na hindi read_tool
 
-### Disabling Compaction
+### Pag-disable ng Compaction
 
 ```bash
-# Keep all historical file reads in context
+# Panatilihin ang lahat ng historical file reads sa context
 likha --full-context-token --task "My task"
 ```
 
@@ -471,145 +471,145 @@ likha --full-context-token --task "My task"
 
 ## API Server
 
-likha includes an Express-based HTTP API server for remote task execution and UI integration.
+May kasamang Express-based HTTP API server ang likha para sa remote task execution at UI integration.
 
-### Starting the Server
+### Pagsisimula ng Server
 
 ```bash
-# Start the API server only
+# Simulan lamang ang API server
 likha --serve --port 3001
 
-# Start both API and UI
+# Simulan ang parehong API at UI
 likha --ui
 ```
 
 ### Authentication
 
-- **Token-based authentication** — all endpoints except `/health`, `/login`, `/register`, and `/users/count` require a Bearer token
-- **First-user registration** — the first user to register becomes admin; subsequent users must be added by an admin
-- **Password hashing** — passwords are hashed before storage
+- **Token-based authentication** — lahat ng endpoint maliban sa `/health`, `/login`, `/register`, at `/users/count` ay nangangailangan ng Bearer token
+- **First-user registration** — ang unang user na mag-rehistro ay nagiging admin; ang susunod na mga user ay dapat idagdag ng isang admin
+- **Password hashing** — hina-hash ang mga password bago i-store
 
-### API Endpoints
+### Mga API Endpoint
 
-| Method | Endpoint | Description |
+| Method | Endpoint | Paglalarawan |
 |--------|----------|-------------|
-| `GET` | `/api/v1/health` | Health check (no auth) |
-| `POST` | `/api/v1/login` | Login (no auth) |
-| `POST` | `/api/v1/logout` | Logout (no auth) |
-| `POST` | `/api/v1/register` | Register first user only (no auth) |
-| `GET` | `/api/v1/users/count` | User count (no auth) |
-| `POST` | `/api/v1/chat` | Execute a task |
-| `POST` | `/api/v1/chat/plan` | Generate a plan (returns sessionId) |
-| `POST` | `/api/v1/chat/execute` | Execute an approved plan by sessionId |
-| `GET` | `/api/v1/telemetry` | Read telemetry logs |
-| `GET` | `/api/v1/skills` | List all skills |
-| `GET` | `/api/v1/users` | List users |
-| `POST` | `/api/v1/users` | Create user (admin only) |
-| `PUT` | `/api/v1/users/:id` | Update user |
-| `DELETE` | `/api/v1/users/:id` | Delete user |
-| `GET` | `/api/v1/plans` | List plans |
-| `POST` | `/api/v1/plans` | Create plan |
-| `GET` | `/api/v1/plans/:id` | Get plan with tasks |
-| `PUT` | `/api/v1/plans/:id/status` | Update plan status |
-| `PUT` | `/api/v1/plans/:planId/tasks/:taskId` | Update task status within a plan |
-| `POST` | `/api/v1/plans/:id/tasks` | Add a task to a plan |
-| `DELETE` | `/api/v1/plans/:planId/tasks/:taskId` | Delete a task from a plan |
-| `GET` | `/api/v1/task-history` | Read task history |
-| `POST` | `/api/v1/task-history` | Add task history entry |
-| `GET` | `/api/v1/task-history/:taskId/logs` | Get telemetry logs for a specific task |
-| `GET` | `/api/v1/phase-reports` | List phase reports (requires `taskId` query param) |
-| `GET` | `/api/v1/phase-reports/:id` | Get phase report by ID |
-| `GET` | `/api/v1/wbs` | List WBS entries (requires `taskId` query param) |
-| `PUT` | `/api/v1/wbs/:id/status` | Update WBS entry status |
-| `GET` | `/api/v1/projects` | List projects |
-| `POST` | `/api/v1/projects` | Create a project |
-| `PUT` | `/api/v1/projects/:id` | Update a project |
-| `POST` | `/api/v1/projects/:id/activate` | Set a project as active |
-| `DELETE` | `/api/v1/projects/:id` | Delete a project |
-| `GET` | `/api/v1/projects/:id/files` | Browse workspace files (optional `?path=` query) |
-| `DELETE` | `/api/v1/projects/:id/files` | Delete a file from the workspace |
-| `POST` | `/api/v1/projects/:id/upload` | Upload a file to the workspace (multipart) |
-| `GET` | `/api/v1/projects/:id/download` | Download workspace as ZIP archive |
-| `GET` | `/api/v1/settings/llm-key` | Check if API key is set |
-| `PUT` | `/api/v1/settings/llm-key` | Set API key |
-| `DELETE` | `/api/v1/settings/llm-key` | Clear API key |
+| `GET` | `/api/v1/health` | Health check (walang auth) |
+| `POST` | `/api/v1/login` | Login (walang auth) |
+| `POST` | `/api/v1/logout` | Logout (walang auth) |
+| `POST` | `/api/v1/register` | Magrehistro lamang ng unang user (walang auth) |
+| `GET` | `/api/v1/users/count` | Bilang ng user (walang auth) |
+| `POST` | `/api/v1/chat` | Mag-execute ng task |
+| `POST` | `/api/v1/chat/plan` | Gumawa ng plano (ibinabalik ang sessionId) |
+| `POST` | `/api/v1/chat/execute` | I-execute ang isang naaprubahang plano gamit ang sessionId |
+| `GET` | `/api/v1/telemetry` | Basahin ang telemetry logs |
+| `GET` | `/api/v1/skills` | Ilista ang lahat ng skills |
+| `GET` | `/api/v1/users` | Ilista ang mga user |
+| `POST` | `/api/v1/users` | Gumawa ng user (admin lamang) |
+| `PUT` | `/api/v1/users/:id` | I-update ang user |
+| `DELETE` | `/api/v1/users/:id` | Burahin ang user |
+| `GET` | `/api/v1/plans` | Ilista ang mga plano |
+| `POST` | `/api/v1/plans` | Gumawa ng plano |
+| `GET` | `/api/v1/plans/:id` | Kunin ang plano kasama ang mga task |
+| `PUT` | `/api/v1/plans/:id/status` | I-update ang status ng plano |
+| `PUT` | `/api/v1/plans/:planId/tasks/:taskId` | I-update ang status ng task sa loob ng isang plano |
+| `POST` | `/api/v1/plans/:id/tasks` | Magdagdag ng task sa isang plano |
+| `DELETE` | `/api/v1/plans/:planId/tasks/:taskId` | Burahin ang task mula sa isang plano |
+| `GET` | `/api/v1/task-history` | Basahin ang task history |
+| `POST` | `/api/v1/task-history` | Magdagdag ng entry sa task history |
+| `GET` | `/api/v1/task-history/:taskId/logs` | Kunin ang telemetry logs para sa isang partikular na task |
+| `GET` | `/api/v1/phase-reports` | Ilista ang mga phase report (nangangailangan ng `taskId` query param) |
+| `GET` | `/api/v1/phase-reports/:id` | Kunin ang phase report gamit ang ID |
+| `GET` | `/api/v1/wbs` | Ilista ang mga WBS entry (nangangailangan ng `taskId` query param) |
+| `PUT` | `/api/v1/wbs/:id/status` | I-update ang status ng WBS entry |
+| `GET` | `/api/v1/projects` | Ilista ang mga project |
+| `POST` | `/api/v1/projects` | Gumawa ng project |
+| `PUT` | `/api/v1/projects/:id` | I-update ang isang project |
+| `POST` | `/api/v1/projects/:id/activate` | Itakda ang isang project bilang aktibo |
+| `DELETE` | `/api/v1/projects/:id` | Burahin ang isang project |
+| `GET` | `/api/v1/projects/:id/files` | I-browse ang mga workspace file (opsyonal na `?path=` query) |
+| `DELETE` | `/api/v1/projects/:id/files` | Burahin ang isang file mula sa workspace |
+| `POST` | `/api/v1/projects/:id/upload` | Mag-upload ng file sa workspace (multipart) |
+| `GET` | `/api/v1/projects/:id/download` | I-download ang workspace bilang ZIP archive |
+| `GET` | `/api/v1/settings/llm-key` | Suriin kung naka-set ang API key |
+| `PUT` | `/api/v1/settings/llm-key` | I-set ang API key |
+| `DELETE` | `/api/v1/settings/llm-key` | Burahin ang API key |
 
 ### Chat API Response
 
-The `/chat` endpoint returns a structured response including:
+Ang `/chat` endpoint ay nagbabalik ng structured na response na kinabibilangan ng:
 
-- `result` — The task result text
-- `plan` — The generated plan (if plan mode was active)
-- `sessionId` — For two-phase approval flow
-- `usage` — Token usage statistics
-- `healthScore` — Current self-healing health score
-- `limitation` — Explanation if the task didn't complete normally
-- `partialSuccess` — Partial progress context when iteration limit was hit
-- `subagentContext` — Preserved subagent context for "Continue" button
+- `result` — Ang text ng resulta ng task
+- `plan` — Ang nabuong plano (kung aktibo ang plan mode)
+- `sessionId` — Para sa two-phase approval flow
+- `usage` — Estadistika ng token usage
+- `healthScore` — Kasalukuyang self-healing health score
+- `limitation` — Paliwanag kung hindi normal na natapos ang task
+- `partialSuccess` — Konteksto ng partial progress kapag naabot ang iteration limit
+- `subagentContext` — Napanatiling subagent context para sa "Continue" na button
 
 ---
 
 ## UI
 
-likha includes a React frontend built with Vite and TypeScript.
+May kasamang React frontend ang likha na ginawa gamit ang Vite at TypeScript.
 
-### Starting the UI
+### Pagsisimula ng UI
 
 ```bash
-# Start both API and UI
+# Simulan ang parehong API at UI
 likha --ui
 
-# Or use the npm script
+# O gamitin ang npm script
 npm run likha:ui
 ```
 
-### UI Features
+### Mga Feature ng UI
 
-- **Dashboard** — Overview of recent tasks and system status
-- **Chat interface** — Submit tasks and view results
-- **Plan management** — View, approve, and track plans
-- **Task history** — Browse past task executions
-- **Phase reports** — View per-phase results
-- **Telemetry viewer** — Browse thinking logs and LLM call logs
-- **User management** — Admin panel for user administration
-- **Settings** — LLM API key configuration
-- **Project management** — Add and switch between projects
-- **Diagnostics** — View health scores and system diagnostics
+- **Dashboard** — Pangkalahatang-ideya ng mga kamakailang task at status ng sistema
+- **Chat interface** — Mag-submit ng mga task at tingnan ang mga resulta
+- **Plan management** — Tingnan, aprubahan, at subaybayan ang mga plano
+- **Task history** — I-browse ang mga naunang task execution
+- **Phase reports** — Tingnan ang mga resulta bawat phase
+- **Telemetry viewer** — I-browse ang thinking logs at LLM call logs
+- **User management** — Admin panel para sa pamamahala ng user
+- **Settings** — Configuration ng LLM API key
+- **Project management** — Magdagdag at lumipat sa pagitan ng mga project
+- **Diagnostics** — Tingnan ang health scores at system diagnostics
 
 ---
 
 ## Deploy Mode
 
-likha supports local and remote deployment via Docker Compose.
+Sinusuportahan ng likha ang local at remote deployment sa pamamagitan ng Docker Compose.
 
 ### Local Deploy
 
 ```bash
-# Deploy using Docker Compose (direct execution)
+# Mag-deploy gamit ang Docker Compose (direktang execution)
 likha --deploy --docker
 
-# Deploy with LLM as devops engineer (diagnoses and fixes issues)
+# Mag-deploy na may LLM bilang devops engineer (nag-di-diagnose at nag-aayos ng mga isyu)
 likha --deploy --docker --llm true
 ```
 
 ### Remote Deploy
 
 ```bash
-# Deploy to a remote host
+# Mag-deploy sa isang remote host
 likha --deploy --docker --remote 192.168.1.100
 
-# With custom remote path
+# May custom remote path
 likha --deploy --docker --remote 192.168.1.100 --remote-path /opt/myapp
 
-# With LLM assistance
+# May tulong ng LLM
 likha --deploy --docker --remote 192.168.1.100 --llm true
 ```
 
-Requires `REMOTE_SSH_USER` and `REMOTE_SSH_PASSWORD` environment variables for remote deployment.
+Nangangailangan ng `REMOTE_SSH_USER` at `REMOTE_SSH_PASSWORD` environment variables para sa remote deployment.
 
 ### Fleet Operations
 
-For fleet operations across multiple hosts, use the shared SSH credentials:
+Para sa fleet operations sa maraming host, gamitin ang shared SSH credentials:
 
 ```env
 XCODER_SSH_TARGETS=host1:22,host2:22
@@ -619,11 +619,11 @@ XCODER_SSH_PASSWORD=fleet-password
 
 ---
 
-## Audit & Diagnostics
+## Audit at Diagnostics
 
 ### ReAct Audit
 
-The built-in bug-fixing scenario battery tests the orchestrator against a set of predefined bug-fixing scenarios. Each scenario is independently verified.
+Sinusubok ng built-in bug-fixing scenario battery ang orchestrator laban sa isang set ng predefined na bug-fixing scenario. Bawat scenario ay independiyenteng na-verify.
 
 ```bash
 likha --audit-react
@@ -632,7 +632,7 @@ likha --audit-out reports/my-audit.md
 
 ### Live Diagnostics
 
-The 7-point ReAct diagnostic suite tests the real configured LLM against:
+Sinusubok ng 7-point ReAct diagnostic suite ang tunay na na-configure na LLM laban sa:
 1. Iteration stopping
 2. Restart-approval
 3. Duplicate-action avoidance
@@ -652,57 +652,57 @@ likha --diagnose-out reports/my-diagnostics.md
 
 ### OrchestratorOptions
 
-The `OrchestratorOptions` interface (defined in `src/core/orchestrator.ts`) controls engine behavior:
+Kinokontrol ng `OrchestratorOptions` interface (tinukoy sa `src/core/orchestrator.ts`) ang behavior ng engine:
 
-| Option | Type | Default | Description |
+| Option | Type | Default | Paglalarawan |
 |--------|------|---------|-------------|
-| `maxIterations` | `number` | `20` | Max ReAct iterations per round |
-| `planMode` | `"auto" \| "always" \| "never"` | `"auto"` | Plan mode trigger strategy |
-| `validateGoal` | `boolean` | `true` | Independent validation before completion |
-| `maxValidatorRetries` | `number` | `2` | Max validator rejection retries |
-| `interactive` | `boolean` | `true` | Enable interactive stdin prompts |
+| `maxIterations` | `number` | `20` | Max na ReAct iterations bawat round |
+| `planMode` | `"auto" \| "always" \| "never"` | `"auto"` | Trigger strategy ng plan mode |
+| `validateGoal` | `boolean` | `true` | Independent validation bago mag-complete |
+| `maxValidatorRetries` | `number` | `2` | Max na validator rejection retries |
+| `interactive` | `boolean` | `true` | I-enable ang interactive stdin prompts |
 | `auto` | `boolean` | `false` | Fully autonomous mode |
-| `continueOnLimit` | `boolean` | `false` | Auto-continue past iteration limit |
-| `consoleThoughts` | `boolean` | `true` | Show live console output |
-| `leanToken` | `boolean` | `true` | Enable context compaction |
-| `fullContextToken` | `boolean` | `false` | Disable context compaction |
-| `selfHealing` | `boolean` | `true` | Enable self-healing nudges |
-| `isolatedWorkspace` | `boolean` | `false` | Run in isolated workspace copy |
-| `singlePhase` | `boolean` | `false` | Disable phase planning |
+| `continueOnLimit` | `boolean` | `false` | Awtomatikong ipagpatuloy lampas sa iteration limit |
+| `consoleThoughts` | `boolean` | `true` | Ipakita ang live console output |
+| `leanToken` | `boolean` | `true` | I-enable ang context compaction |
+| `fullContextToken` | `boolean` | `false` | I-disable ang context compaction |
+| `selfHealing` | `boolean` | `true` | I-enable ang self-healing nudges |
+| `isolatedWorkspace` | `boolean` | `false` | Magpatakbo sa isolated workspace copy |
+| `singlePhase` | `boolean` | `false` | I-disable ang phase planning |
 | `io` | `AgentIO` | `AutoIO` | I/O abstraction (CLI vs API) |
-| `persistToDb` | `boolean` | `false` | Enable database persistence |
+| `persistToDb` | `boolean` | `false` | I-enable ang database persistence |
 
 ### Environment Variables
 
 ```env
 DEEPSEEK_API_KEY=sk-your-key-here
-# ANTHROPIC_API_KEY=sk-ant-your-key-here   # fallback or provider switch (llm.yaml)
+# ANTHROPIC_API_KEY=sk-ant-your-key-here   # fallback o provider switch (llm.yaml)
 ```
 
-| Variable | Description |
+| Variable | Paglalarawan |
 |----------|-------------|
-| `DEEPSEEK_API_KEY` | DeepSeek API key (default provider — required for default runs) |
-| `ANTHROPIC_API_KEY` | Anthropic API key (fallback/provider switch example; `api_key_env` in `llm.yaml` names whatever var any provider needs) |
-| `MAX_ITERATIONS` | Override max iterations |
-| `XCODER_API_PORT` | API server port |
-| `XCODER_API_HOST` | API server host |
+| `DEEPSEEK_API_KEY` | DeepSeek API key (default provider — kinakailangan para sa default na pagpapatakbo) |
+| `ANTHROPIC_API_KEY` | Anthropic API key (halimbawa ng fallback/provider switch; ang `api_key_env` sa `llm.yaml` ang nagpapangalan kung anong variable ang kailangan ng anumang provider) |
+| `MAX_ITERATIONS` | I-override ang max iterations |
+| `XCODER_API_PORT` | Port ng API server |
+| `XCODER_API_HOST` | Host ng API server |
 | `DATABASE_URL` | PostgreSQL connection string |
-| `REMOTE_SSH_USER` | SSH user for remote deploy |
-| `REMOTE_SSH_PASSWORD` | SSH password for remote deploy |
+| `REMOTE_SSH_USER` | SSH user para sa remote deploy |
+| `REMOTE_SSH_PASSWORD` | SSH password para sa remote deploy |
 | `XCODER_SSH_TARGETS` | Fleet SSH targets |
 | `XCODER_SSH_USER` | Fleet SSH user |
 | `XCODER_SSH_PASSWORD` | Fleet SSH password |
-| `GITHUB_TOKEN` | GitHub token for git operations |
+| `GITHUB_TOKEN` | GitHub token para sa git operations |
 
-> The legacy `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` env vars are **not read** by likha.
-> Provider, base URL, endpoint, and model are configured in `agent/config/llm.yaml` — see below.
+> Ang legacy na `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` env vars ay **hindi binabasa** ng likha.
+> Ang provider, base URL, endpoint, at model ay naka-configure sa `agent/config/llm.yaml` — tingnan sa ibaba.
 
-### LLM Providers
+### Mga LLM Provider
 
-likha's LLM backend is config-driven and provider-agnostic. **DeepSeek is the default**,
-but any OpenAI-compatible provider (OpenAI, OpenRouter, Groq, Ollama, a company proxy, …)
-and Anthropic can be selected by editing `agent/config/llm.yaml` and setting the matching
-API key environment variable — **no code changes or CLI flags needed**.
+Ang LLM backend ng likha ay config-driven at provider-agnostic. **Default ang DeepSeek**,
+ngunit anumang OpenAI-compatible na provider (OpenAI, OpenRouter, Groq, Ollama, isang company proxy, …)
+at Anthropic ay maaaring piliin sa pamamagitan ng pag-edit ng `agent/config/llm.yaml` at pag-set ng
+katugmang API key environment variable — **walang kailangang baguhin sa code o CLI flags**.
 
 **DeepSeek (default):**
 
@@ -761,7 +761,7 @@ GROQ_API_KEY=sk-...
 ```yaml
 provider: ollama
 model: llama3.1
-api_key_env: OLLAMA_API_KEY  # optional for local; set any name you like, or rely on the registry URL
+api_key_env: OLLAMA_API_KEY  # opsyonal para sa local; mag-set ng kahit anong pangalan, o umasa sa registry URL
 ```
 
 ```env
@@ -782,9 +782,9 @@ api_key_env: MY_PROXY_API_KEY
 MY_PROXY_API_KEY=sk-...
 ```
 
-Known providers with built-in URL registrations (explicit `base_url` always wins):
+Mga kilalang provider na may built-in URL registrations (ang explicit `base_url` ay laging mananalo):
 
-| Provider | Default base URL |
+| Provider | Default na Base URL |
 |---|---|
 | `deepseek` | `https://api.deepseek.com/v1` |
 | `openai` | `https://api.openai.com/v1` |
@@ -804,9 +804,9 @@ api_key_env: ANTHROPIC_API_KEY
 ANTHROPIC_API_KEY=sk-ant-your-key-here
 ```
 
-> Anthropic ignores `base_url` and `endpoint` — its Messages API URL is fixed in the client.
+> Hindi pinapansin ng Anthropic ang `base_url` at `endpoint` — nakapirmi sa client ang URL ng Messages API nito.
 
-**Fallback block (optional; same routing rules as the main block):**
+**Fallback block (opsyonal; parehong routing rules gaya ng main block):**
 
 ```yaml
 fallback:
@@ -816,49 +816,49 @@ fallback:
   api_key_env: DEEPSEEK_API_KEY
 ```
 
-**Routing rules:**
+**Mga Routing Rule:**
 
-1. An explicit `base_url` always wins over the built-in provider URL registry.
-2. When `base_url` is omitted, the registry entry for `deepseek`/`openai`/`openrouter`/`groq`/`ollama` is used.
-3. `endpoint` defaults to `/chat/completions` when omitted.
-4. There is **no CLI flag for switching providers** — provider switching is config-file-driven (`agent/config/llm.yaml`) only.
+1. Laging mananalo ang explicit na `base_url` kaysa sa built-in provider URL registry.
+2. Kapag hindi isinama ang `base_url`, ginagamit ang registry entry para sa `deepseek`/`openai`/`openrouter`/`groq`/`ollama`.
+3. Ang `endpoint` ay default sa `/chat/completions` kapag hindi isinama.
+4. **Walang CLI flag para sa pagpapalit ng provider** — ang provider switching ay config-file-driven (`agent/config/llm.yaml`) lamang.
 
-After editing `agent/config/llm.yaml`, restart any running likha process so the new provider is loaded.
+Pagkatapos i-edit ang `agent/config/llm.yaml`, i-restart ang anumang tumatakbong likha process para ma-load ang bagong provider.
 
 ---
 
 ## Database Layer
 
-likha supports both SQLite and PostgreSQL for persistent storage.
+Sinusuportahan ng likha ang parehong SQLite at PostgreSQL para sa persistent storage.
 
 ### SQLite
 
-- Default database for local development
-- File-based, no server required
-- Used when no `DATABASE_URL` is set
+- Default na database para sa local development
+- File-based, walang kailangang server
+- Ginagamit kapag walang naka-set na `DATABASE_URL`
 
 ### PostgreSQL
 
-- Production database for the API server
-- Configured via `DATABASE_URL` environment variable
-- Supports migrations, task history, phase reports, WBS, and telemetry
+- Production database para sa API server
+- Naka-configure sa pamamagitan ng `DATABASE_URL` environment variable
+- Sumusuporta sa migrations, task history, phase reports, WBS, at telemetry
 
 ### Initialization
 
 ```bash
-# Initialize the database (creates tables)
+# I-initialize ang database (gagawa ng mga table)
 npm run init-db
 ```
 
-### Database Stores
+### Mga Database Store
 
-| Store | Description |
+| Store | Paglalarawan |
 |-------|-------------|
-| `TaskHistoryStore` | Task execution history |
-| `PhaseReportStore` | Per-phase reports |
-| `WbsStore` | Work Breakdown Structure entries |
-| `PlanStore` | Saved plans |
-| `ProjectStore` | Project configurations |
+| `TaskHistoryStore` | History ng task execution |
+| `PhaseReportStore` | Mga ulat bawat phase |
+| `WbsStore` | Mga entry ng Work Breakdown Structure |
+| `PlanStore` | Mga naka-save na plano |
+| `ProjectStore` | Mga configuration ng project |
 
 ---
 
@@ -867,51 +867,51 @@ npm run init-db
 ### Setup
 
 ```bash
-# Full setup (interactive)
+# Buong setup (interactive)
 npm run setup
 
-# Non-interactive setup
+# Non-interactive na setup
 npm run setup:non-interactive
 ```
 
-### Scripts
+### Mga Script
 
-| Script | Description |
+| Script | Paglalarawan |
 |--------|-------------|
-| `npm run build` | Compile TypeScript and copy agent files |
-| `npm run dev` | Run in dev mode (ts-node) |
-| `npm test` | Run test suite (Vitest) |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run likha:link` | Link likha globally via npm link |
-| `npm run likha:unlink` | Unlink global likha |
-| `npm run likha:install` | Install all dependencies (including UI) |
-| `npm run likha:build` | Build both CLI and UI |
-| `npm run likha:ui` | Start API + UI concurrently |
-| `npm run likha:api` | Start API server only |
-| `npm run package:build` | Build distributable package |
-| `npm run package:validate` | Validate package |
-| `npm run package:tarball` | Create tarball |
-| `npm run package:docker` | Build Docker image |
-| `npm run package:all` | Build all package formats |
-| `npm run init-db` | Initialize database tables |
+| `npm run build` | I-compile ang TypeScript at kopyahin ang agent files |
+| `npm run dev` | Magpatakbo sa dev mode (ts-node) |
+| `npm test` | Patakbuhin ang test suite (Vitest) |
+| `npm run test:watch` | Patakbuhin ang mga test sa watch mode |
+| `npm run likha:link` | I-link ang likha nang global sa pamamagitan ng npm link |
+| `npm run likha:unlink` | I-unlink ang global likha |
+| `npm run likha:install` | I-install ang lahat ng dependency (kasama ang UI) |
+| `npm run likha:build` | I-build ang parehong CLI at UI |
+| `npm run likha:ui` | Sabay na simulan ang API + UI |
+| `npm run likha:api` | Simulan lamang ang API server |
+| `npm run package:build` | I-build ang distributable package |
+| `npm run package:validate` | I-validate ang package |
+| `npm run package:tarball` | Gumawa ng tarball |
+| `npm run package:docker` | I-build ang Docker image |
+| `npm run package:all` | I-build ang lahat ng package formats |
+| `npm run init-db` | I-initialize ang mga database table |
 
 ### Testing
 
 ```bash
-# Run all tests
+# Patakbuhin ang lahat ng test
 npm test
 
-# Run specific test file
+# Patakbuhin ang isang partikular na test file
 npx vitest run src/core/__tests__/iterationReasonDedup.test.ts
 
-# Run tests in watch mode
+# Patakbuhin ang mga test sa watch mode
 npm run test:watch
 ```
 
-### Adding a New Skill
+### Pagdaragdag ng Bagong Skill
 
-1. Create a directory: `agent/skills/<name>/`
-2. Create `SKILL.md` with YAML frontmatter:
+1. Gumawa ng directory: `agent/skills/<name>/`
+2. Gumawa ng `SKILL.md` na may YAML frontmatter:
 
 ```markdown
 ---
@@ -939,12 +939,12 @@ Strategies and approaches.
 Specific instructions.
 ```
 
-3. Run `likha --skills` to verify it's loaded
+3. Patakbuhin ang `likha --skills` para ma-verify na naka-load ito
 
-### Adding a New Engine
+### Pagdaragdag ng Bagong Engine
 
-1. Implement the `IReactEngine` interface (and optionally `IReactEngineV2`)
-2. Register it in `src/core/engine/EngineRegistry.ts`:
+1. I-implement ang `IReactEngine` interface (at opsyonal na `IReactEngineV2`)
+2. I-rehistro ito sa `src/core/engine/EngineRegistry.ts`:
 
 ```typescript
 registerEngine("my-engine", ({ llm, telemetry, io, options }) => {
@@ -952,7 +952,7 @@ registerEngine("my-engine", ({ llm, telemetry, io, options }) => {
 });
 ```
 
-3. Use it: `likha --engine my-engine --task "..."`
+3. Gamitin ito: `likha --engine my-engine --task "..."`
 
 ---
 
@@ -973,10 +973,10 @@ src/
   indexing/      Workspace indexing for .agent/index/
   remote/        Remote SSH deploy support
 agent/
-  skills/        SKILL.md files — see Skill System
+  skills/        SKILL.md files — tingnan ang Skill System
   config/        LLM provider config (llm.yaml)
 ui/
   src/           React app (pages, components/ui primitives, context, API client)
-tasks/           Runtime output: todo.md, wbs.md, lessons.md, phase reports (git-ignored in practice)
-.log/            Runtime output: FileTelemetry logs (git-ignored in practice)
+tasks/           Runtime output: todo.md, wbs.md, lessons.md, phase reports (git-ignored sa praktika)
+.log/            Runtime output: FileTelemetry logs (git-ignored sa praktika)
 ```

@@ -1,15 +1,15 @@
 <!-- ronin:version 2 | ronin:task task-d8bbc5 | ronin:updated 2026-08-13T07:22:57.680Z | ronin:subtask code-st-db60d1 -->
-# xcoder — Usage
+# likha — Usage
 
-How to invoke the xcoder CLI, run tasks, drive the API server and UI, select an orchestration engine, and run tests.
+How to invoke the likha CLI, run tasks, drive the API server and UI, select an orchestration engine, and run tests.
 
 ## CLI Syntax
 
 ```bash
-xcoder [task] [options]
+likha [task] [options]
 ```
 
-The positional `[task]` argument is equivalent to `--task <description>`. After a build, the CLI lives at `dist/cli/index.js`; the npm scripts and the global `xcoder` binary both resolve there.
+The positional `[task]` argument is equivalent to `--task <description>`. After a build, the CLI lives at `dist/cli/index.js`; the npm scripts and the global `likha` binary both resolve there.
 
 Common entry points:
 
@@ -30,42 +30,42 @@ The main task runner and agent commands work through the positional task argumen
 
 ```bash
 # Positional task (equivalent to --task)
-xcoder "Refactor the authentication module to use JWT tokens"
+likha "Refactor the authentication module to use JWT tokens"
 
 # Explicit task option with the lean engine
-xcoder --engine lean --task "Analyze the test coverage"
+likha --engine lean --task "Analyze the test coverage"
 
 # Interactive chat mode (workspace = current folder)
-xcoder --chat
+likha --chat
 
 # List all loaded skills and their trigger keywords
-xcoder --skills
+likha --skills
 
 # Index the current workspace into .agent/index/
-xcoder --index
+likha --index
 
 # Record a lesson to tasks/lessons.md
-xcoder --lesson "Always validate file paths before writing"
+likha --lesson "Always validate file paths before writing"
 
 # Fully autonomous mode — auto-answers ALL interactive prompts
-xcoder --auto --task "Set up CI/CD pipeline"
+likha --auto --task "Set up CI/CD pipeline"
 
 # Runtime diagnostics
-excoder --audit-react
-xcoder --diagnose-live
+elikha --audit-react
+likha --diagnose-live
 ```
 
 Plan mode is controlled explicitly:
 
 ```bash
 # Force Plan Mode on
-xcoder --plan --task "Complex task"
+likha --plan --task "Complex task"
 
 # Force Plan Mode off
-xcoder --no-plan --task "Quick task"
+likha --no-plan --task "Quick task"
 
 # Run as a single ReAct loop (disable phase planning)
-xcoder --single-phase --task "Complex task"
+likha --single-phase --task "Complex task"
 ```
 
 ## API Server & UI
@@ -76,13 +76,13 @@ The Express-based API server exposes routes under `/api/v1` (task execution, pla
 
 ```bash
 # Start the API server on the default port (3001)
-xcoder --serve
+likha --serve
 
 # Start the API server on an explicit port
-xcoder --serve --port 3001
+likha --serve --port 3001
 
 # npm script wrapper for the same command
-npm run xcoder:api
+npm run likha:api
 ```
 
 The port and host can also come from the environment:
@@ -100,18 +100,18 @@ The React UI (Vite + TypeScript) runs alongside the API server:
 
 ```bash
 # Start both API and UI
-xcoder --ui
+likha --ui
 
 # npm script wrapper: API on 3001 + UI dev server
-npm run xcoder:ui
+npm run likha:ui
 ```
 
 ## Engine Selection
 
-xcoder ships four interchangeable orchestration engines, all implementing the `IReactEngine` / `IReactEngineV2` interfaces. Select one with `--engine <name>`:
+likha ships four interchangeable orchestration engines, all implementing the `IReactEngine` / `IReactEngineV2` interfaces. Select one with `--engine <name>`:
 
 ```bash
-xcoder --engine <name> --task "List all TypeScript files in src/"
+likha --engine <name> --task "List all TypeScript files in src/"
 ```
 
 | Engine | Registration Name | Description |
@@ -125,7 +125,7 @@ Engines are registered in `src/core/engine/EngineRegistry.ts` via a factory patt
 
 ## LLM Provider Selection
 
-xcoder's LLM backend is config-driven and provider-agnostic. **DeepSeek is the default**;
+likha's LLM backend is config-driven and provider-agnostic. **DeepSeek is the default**;
 any OpenAI-compatible provider (OpenAI, OpenRouter, Groq, Ollama, a company proxy, …) and
 Anthropic are switchable through `agent/config/llm.yaml` + one API key env var — no code
 changes and no CLI flag. Keys are never inlined in yaml: `api_key_env` names the environment
