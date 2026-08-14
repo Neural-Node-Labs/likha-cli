@@ -47,7 +47,7 @@ function Wordmark() {
         {">_"}
       </span>
       <span style={{ fontWeight: 700, fontSize: "var(--text-lg)", color: "var(--color-text)", letterSpacing: "-0.01em" }}>
-        xcoder
+        likha
       </span>
     </Link>
   );

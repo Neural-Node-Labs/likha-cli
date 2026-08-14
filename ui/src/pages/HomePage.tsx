@@ -18,7 +18,7 @@ interface DashboardCard {
 }
 
 const CARDS: DashboardCard[] = [
-  { title: "Chat", desc: "Send tasks to the xcoder agent", link: "/chat", icon: "💬" },
+  { title: "Chat", desc: "Send tasks to the likha agent", link: "/chat", icon: "💬" },
   { title: "Projects", desc: "Manage workspaces and the active project", link: "/projects", icon: "📁" },
   { title: "Telemetry", desc: "View agent logs and telemetry data", link: "/telemetry", icon: "📊" },
   { title: "Diagnostics", desc: "Run health checks and view loaded skills", link: "/diagnostics", icon: "🩺" },
@@ -73,7 +73,7 @@ export function HomePage() {
             Welcome back, {user?.username}
           </h1>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-base)", marginTop: "var(--space-2)" }}>
-            Here's an overview of your xcoder agent workspace.
+            Here's an overview of your likha agent workspace.
           </p>
         </div>
         {health && <Badge tone="success">● Online</Badge>}

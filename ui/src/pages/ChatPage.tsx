@@ -451,7 +451,7 @@ export function ChatPage() {
       <div role="log" aria-live="polite" aria-label="Chat messages" style={{ ...sectionStyle, flex: "1 1 auto", overflowY: "auto", display: "flex", flexDirection: "column", gap: "12px", minHeight: 0 }}>
         {messages.length === 0 ? (
           <p style={{ color: "var(--color-text-secondary)", textAlign: "center", padding: "40px" }}>
-            Send a message to start chatting with xcoder
+            Send a message to start chatting with likha
           </p>
         ) : (
           messages.map((msg, i) => (

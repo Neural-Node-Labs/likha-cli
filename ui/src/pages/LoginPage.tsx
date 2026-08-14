@@ -118,7 +118,7 @@ export function LoginPage() {
             color: "var(--color-text)",
           }}
         >
-          xcoder
+          likha
         </h1>
         <p
           style={{

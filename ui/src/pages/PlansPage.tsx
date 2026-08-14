@@ -64,7 +64,7 @@ export function PlansPage() {
         <div>
           <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "4px" }}>Plans</h1>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "14px", margin: 0 }}>
-            View and manage plans created by xcoder
+            View and manage plans created by likha
           </p>
         </div>
         <button
