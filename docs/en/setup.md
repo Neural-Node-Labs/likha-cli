@@ -1,7 +1,7 @@
 <!-- ronin:version 6 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:33.117Z | ronin:subtask code-st-82c66c -->
-# xcoder — Setup
+# likha — Setup
 
-How to install xcoder, configure its environment, initialize the database, and set up a development workflow.
+How to install likha, configure its environment, initialize the database, and set up a development workflow.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ How to install xcoder, configure its environment, initialize the database, and s
 Install dependencies from the project root (this also installs the `ui/` frontend dependencies):
 
 ```bash
-npm run xcoder:install
+npm run likha:install
 ```
 
 Then build the TypeScript sources (the `build` script also copies the `agent/` config directory into `dist/config/`):
@@ -50,7 +50,7 @@ The following environment variables are supported:
 | `MAX_ITERATIONS` | ReAct loop iteration ceiling per round |
 | `XCODER_RESTRICT_TO_WORKSPACE` | Safety rail: refuse `read_tool`/`write_edit_tool` paths outside the working directory |
 | `DATABASE_TYPE` | Database backend: `sqlite` (default) or `postgres` |
-| `DATABASE_SQLITE_PATH` | Path to the SQLite database file (default: `~/.xcoder/data/xcoder.db`) |
+| `DATABASE_SQLITE_PATH` | Path to the SQLite database file (default: `~/.likha/data/likha.db`) |
 | `DATABASE_URL` | PostgreSQL connection string (overrides individual params below) |
 | `DATABASE_HOST` | PostgreSQL host |
 | `DATABASE_PORT` | PostgreSQL port |
@@ -67,19 +67,19 @@ The following environment variables are supported:
 | `XCODER_SSH_USER` | Fleet SSH user |
 | `XCODER_SSH_PASSWORD` | Fleet SSH password |
 
-> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` are legacy and **not read** by xcoder. The active
+> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` are legacy and **not read** by likha. The active
 > provider, base URL, endpoint, and model all live in `agent/config/llm.yaml`.
 
 ### LLM Providers
 
-xcoder's LLM backend is config-driven and provider-agnostic: **DeepSeek is the default**, but any
+likha's LLM backend is config-driven and provider-agnostic: **DeepSeek is the default**, but any
 OpenAI-compatible provider (OpenAI, OpenRouter, Groq, Ollama, a company proxy, …) and Anthropic
 can be selected by editing `agent/config/llm.yaml` — **no code changes** and **no CLI flag for
 switching providers** (provider switching is config-file-driven only).
 
 Keys are never inlined in YAML. The `api_key_env` field names the environment variable that holds
 the key; set exactly that variable in your environment or `.env` file. After editing
-`agent/config/llm.yaml`, restart any running xcoder process.
+`agent/config/llm.yaml`, restart any running likha process.
 
 **DeepSeek (default):**
 
@@ -202,7 +202,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
-# DATABASE_URL=postgresql://user:pass@localhost:5432/xcoder
+# DATABASE_URL=postgresql://user:pass@localhost:5432/likha
 # REMOTE_SSH_USER=deploy
 # REMOTE_SSH_PASSWORD=your-password
 # XCODER_SSH_TARGETS=host1:22,host2:22

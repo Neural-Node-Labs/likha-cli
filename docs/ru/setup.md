@@ -1,7 +1,7 @@
 <!-- ronin:version 5 | ronin:task task-b5feec | ronin:updated 2026-08-13T08:18:49.257Z | ronin:subtask code-st-82c66c -->
-# xcoder — Установка
+# likha — Установка
 
-Как установить xcoder, настроить его окружение, инициализировать базу данных и организовать рабочий процесс разработки.
+Как установить likha, настроить его окружение, инициализировать базу данных и организовать рабочий процесс разработки.
 
 ## Предварительные требования
 
@@ -14,7 +14,7 @@
 Установите зависимости из корня проекта (это также устанавливает зависимости фронтенда `ui/`):
 
 ```bash
-npm run xcoder:install
+npm run likha:install
 ```
 
 Затем соберите исходники TypeScript (скрипт `build` также копирует каталог конфигурации `agent/` в `dist/config/`):
@@ -50,7 +50,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 | `MAX_ITERATIONS` | Потолок итераций цикла ReAct за раунд |
 | `XCODER_RESTRICT_TO_WORKSPACE` | Предохранитель: отклоняет пути `read_tool`/`write_edit_tool` за пределами рабочего каталога |
 | `DATABASE_TYPE` | Бэкенд базы данных: `sqlite` (по умолчанию) или `postgres` |
-| `DATABASE_SQLITE_PATH` | Путь к файлу базы данных SQLite (по умолчанию: `~/.xcoder/data/xcoder.db`) |
+| `DATABASE_SQLITE_PATH` | Путь к файлу базы данных SQLite (по умолчанию: `~/.likha/data/likha.db`) |
 | `DATABASE_URL` | Строка подключения PostgreSQL (переопределяет отдельные параметры ниже) |
 | `DATABASE_HOST` | Хост PostgreSQL |
 | `DATABASE_PORT` | Порт PostgreSQL |
@@ -79,7 +79,7 @@ DEEPSEEK_API_KEY=sk-your-key-here
 # MAX_ITERATIONS=25
 # XCODER_API_PORT=3001
 # XCODER_API_HOST=0.0.0.0
-# DATABASE_URL=postgresql://user:pass@localhost:5432/xcoder
+# DATABASE_URL=postgresql://user:pass@localhost:5432/likha
 # REMOTE_SSH_USER=deploy
 # REMOTE_SSH_PASSWORD=your-password
 # XCODER_SSH_TARGETS=host1:22,host2:22
@@ -89,9 +89,9 @@ DEEPSEEK_API_KEY=sk-your-key-here
 
 ### Поставщики LLM
 
-Бэкенд LLM в xcoder полностью управляется конфигурацией: **DeepSeek — поставщик по умолчанию**, но любой совместимый с OpenAI поставщик (OpenAI, OpenRouter, Groq, Ollama, корпоративный прокси, …) и Anthropic можно выбрать, отредактировав `agent/config/llm.yaml` — **без изменения кода** и без CLI-флага для переключения поставщика (переключение поставщика выполняется только через файл конфигурации).
+Бэкенд LLM в likha полностью управляется конфигурацией: **DeepSeek — поставщик по умолчанию**, но любой совместимый с OpenAI поставщик (OpenAI, OpenRouter, Groq, Ollama, корпоративный прокси, …) и Anthropic можно выбрать, отредактировав `agent/config/llm.yaml` — **без изменения кода** и без CLI-флага для переключения поставщика (переключение поставщика выполняется только через файл конфигурации).
 
-Ключи никогда не встраиваются в YAML: поле `api_key_env` указывает имя переменной окружения, в которой хранится ключ. Задайте именно эту переменную (в окружении или в файле `.env`), затем перезапустите любой запущенный процесс xcoder после изменения.
+Ключи никогда не встраиваются в YAML: поле `api_key_env` указывает имя переменной окружения, в которой хранится ключ. Задайте именно эту переменную (в окружении или в файле `.env`), затем перезапустите любой запущенный процесс likha после изменения.
 
 **Переключение на совместимый с OpenAI поставщик (пример OpenAI):**
 
@@ -126,7 +126,7 @@ ANTHROPIC_API_KEY=sk-ant-your-key-here
 3. `endpoint` по умолчанию равен `/chat/completions`, если опущен.
 4. `anthropic` игнорирует `base_url` и `endpoint`.
 
-> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` — устаревшие переменные, xcoder их **не читает**.
+> `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` — устаревшие переменные, likha их **не читает**.
 
 ## Инициализация базы данных
 

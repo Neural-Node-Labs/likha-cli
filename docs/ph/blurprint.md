@@ -1,7 +1,7 @@
 <!-- ronin:version 1 | ronin:task task-eedb5e | ronin:updated 2026-08-11T16:16:31.954Z | ronin:subtask code-st-7639c0 -->
-# xcoder — Architecture Blueprint
+# likha — Architecture Blueprint
 
-Ipinapaliwanag ng dokumentong ito kung paano gumagana ang xcoder sa loob: design goals, mga pangunahing abstraksyon, engines, skill system, API server at UI, deployment topology, directory reference, at extension points.
+Ipinapaliwanag ng dokumentong ito kung paano gumagana ang likha sa loob: design goals, mga pangunahing abstraksyon, engines, skill system, API server at UI, deployment topology, directory reference, at extension points.
 
 ## Mga Design Goals
 
@@ -9,7 +9,7 @@ Ang arkitektura ay nakaayos sa paligid ng apat na layunin:
 
 1. **Ang orchestration engine ay swappable.** Ang ReAct loop (`ReActOrchestrator`) ay isang implementation lamang ng `IReactEngine` interface, hindi isang hardcoded dependency ng CLI o API.
 2. **Ang presentation ay hindi concern ng engine.** Nag-uulat ang engine ng progress at humihingi ng approval sa pamamagitan ng `AgentIO` interface; hindi nito alam kung ito ay nakikipag-usap sa isang terminal, isang HTTP request, o isang test harness.
-3. **Ang CLI at ang database ay decoupled.** Ang isang `xcoder --task "..."` run ay hindi kailanman nagbubukas ng database connection. Tanging ang API server (na sumusuporta sa UI) ang nagpe-persist sa database.
+3. **Ang CLI at ang database ay decoupled.** Ang isang `likha --task "..."` run ay hindi kailanman nagbubukas ng database connection. Tanging ang API server (na sumusuporta sa UI) ang nagpe-persist sa database.
 4. **Ang behavior ay pinapalawak sa pamamagitan ng skills, hindi forks.** Ang domain expertise ay nasa `agent/skills/*/SKILL.md` at pinipili sa runtime sa pamamagitan ng keyword routing, hindi naka-compile sa core loop.
 
 ## System Diagram
@@ -121,7 +121,7 @@ markdown body (Process / Instructions / Strategies / Experience)
 
 Ang `route(taskDescription)` ay naglo-lowercase ng task at binibilang kung ilang triggers ang literal na substrings nito. **Ito ay plain substring matching na walang word boundaries** — ang isang trigger na tulad ng `"ux"` ay tutugma sa loob ng `"SELinux"`, ang `"pod"` ay tutugma sa loob ng `"podcast"`, at ang `"git"` ay tutugma sa loob ng `"digital"`. Kaya ang mga trigger ay dapat piliin nang depensibo (mas mahahabang phrases, o explicit trailing-space boundaries tulad ng `"the pod "`).
 
-Patakbuhin ang `xcoder --skills` para sa live na listahan ng mga skills kasama ang kanilang mga roles at triggers.
+Patakbuhin ang `likha --skills` para sa live na listahan ng mga skills kasama ang kanilang mga roles at triggers.
 
 ## API Server at UI
 
@@ -131,10 +131,10 @@ Patakbuhin ang `xcoder --skills` para sa live na listahan ng mga skills kasama a
 
 ## Deployment Topology
 
-`xcoder --deploy --docker [--remote <ip>] [--llm true|false]`:
+`likha --deploy --docker [--remote <ip>] [--llm true|false]`:
 
 - **Walang `--remote`:** lokal na `docker compose up -d --build` — direkta o, kung may `--llm true`, ibibigay sa engine bilang devops task para ma-diagnose at maayos ang isang failed build.
-- **May `--remote <ip>`:** mag-SSH sa remote host (`REMOTE_SSH_USER`/`REMOTE_SSH_PASSWORD` mula sa `.env`) at doon mag-deploy; ang default ng `--remote-path` ay `/opt/xcoder`.
+- **May `--remote <ip>`:** mag-SSH sa remote host (`REMOTE_SSH_USER`/`REMOTE_SSH_PASSWORD` mula sa `.env`) at doon mag-deploy; ang default ng `--remote-path` ay `/opt/likha`.
 
 ## Directory Reference
 

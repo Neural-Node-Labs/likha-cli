@@ -1,7 +1,7 @@
 <!-- ronin:version 1 | ronin:task task-eedb5e | ronin:updated 2026-08-11T16:15:21.604Z | ronin:subtask code-st-7639c0 -->
-# xcoder — Architecture Blueprint
+# likha — Architecture Blueprint
 
-How xcoder works internally: design goals, core abstractions, engines, skill system, API server & UI, deployment topology, directory reference, and extension points.
+How likha works internally: design goals, core abstractions, engines, skill system, API server & UI, deployment topology, directory reference, and extension points.
 
 ## Design Goals
 
@@ -9,7 +9,7 @@ The architecture is organized around four goals:
 
 1. **The orchestration engine is swappable.** The ReAct loop (`ReActOrchestrator`) is one implementation of an `IReactEngine` interface, not a hardcoded dependency of the CLI or API.
 2. **Presentation is not the engine's concern.** The engine reports progress and asks for approval through an `AgentIO` interface; it has no idea whether it is talking to a terminal, an HTTP request, or a test harness.
-3. **The CLI and the database are decoupled.** A `xcoder --task "..."` run never opens a database connection. Only the API server (which backs the UI) persists to the database.
+3. **The CLI and the database are decoupled.** A `likha --task "..."` run never opens a database connection. Only the API server (which backs the UI) persists to the database.
 4. **Behavior is extended via skills, not forks.** Domain expertise lives in `agent/skills/*/SKILL.md` and is selected at runtime by keyword routing, not compiled into the core loop.
 
 ## System Diagram
@@ -121,7 +121,7 @@ markdown body (Process / Instructions / Strategies / Experience)
 
 `route(taskDescription)` lowercases the task and counts how many triggers are literal substrings of it. **This is plain substring matching with no word boundaries** — a trigger like `"ux"` matches inside `"SELinux"`, `"pod"` matches inside `"podcast"`, and `"git"` matches inside `"digital"`. Triggers must therefore be chosen defensively (longer phrases, or explicit trailing-space boundaries like `"the pod "`).
 
-Run `xcoder --skills` for the live list of skills with roles and triggers.
+Run `likha --skills` for the live list of skills with roles and triggers.
 
 ## API Server & UI
 
@@ -131,10 +131,10 @@ Run `xcoder --skills` for the live list of skills with roles and triggers.
 
 ## Deployment Topology
 
-`xcoder --deploy --docker [--remote <ip>] [--llm true|false]`:
+`likha --deploy --docker [--remote <ip>] [--llm true|false]`:
 
 - **No `--remote`:** local `docker compose up -d --build` — directly or, with `--llm true`, handed to the engine as a devops task so it can diagnose and fix a failed build.
-- **`--remote <ip>`:** SSHes to the remote host (`REMOTE_SSH_USER`/`REMOTE_SSH_PASSWORD` from `.env`) and deploys there instead; `--remote-path` defaults to `/opt/xcoder`.
+- **`--remote <ip>`:** SSHes to the remote host (`REMOTE_SSH_USER`/`REMOTE_SSH_PASSWORD` from `.env`) and deploys there instead; `--remote-path` defaults to `/opt/likha`.
 
 ## Directory Reference
 
