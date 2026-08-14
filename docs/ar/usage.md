@@ -1,15 +1,15 @@
 <!-- ronin:version 1 | ronin:task task-5e8fe0 | ronin:updated 2026-08-11T16:39:42.971Z | ronin:subtask code-st-be6a3a -->
-# likha — دليل الاستخدام
+# xcoder — دليل الاستخدام
 
-يوضّح هذا المستند كيفية استدعاء واجهة سطر الأوامر في likha، وتشغيل المهام، وقيادة خادم API والواجهة، واختيار محرّك التنسيق، وتشغيل الاختبارات والتشخيص.
+يوضّح هذا المستند كيفية استدعاء واجهة سطر الأوامر في xcoder، وتشغيل المهام، وقيادة خادم API والواجهة، واختيار محرّك التنسيق، وتشغيل الاختبارات والتشخيص.
 
 ## استخدام سطر الأوامر
 
 ```bash
-likha [task] [options]
+xcoder [task] [options]
 ```
 
-الوسيط الموضعي `[task]` يعادل `--task <description>`. بعد البناء، يكون CLI في `dist/cli/index.js`؛ وتشير نصوص npm والأمر العام `likha` إلى هذا المسار نفسه.
+الوسيط الموضعي `[task]` يعادل `--task <description>`. بعد البناء، يكون CLI في `dist/cli/index.js`؛ وتشير نصوص npm والأمر العام `xcoder` إلى هذا المسار نفسه.
 
 نقاط الدخول الشائعة:
 
@@ -30,42 +30,42 @@ node dist/cli/index.js
 
 ```bash
 # مهمة موضعية (تعادل --task)
-likha "إعادة هيكلة وحدة المصادقة لاستخدام JWT tokens"
+xcoder "إعادة هيكلة وحدة المصادقة لاستخدام JWT tokens"
 
 # خيار مهمة صريح مع محرّك lean
-likha --engine lean --task "تحليل تغطية الاختبارات"
+xcoder --engine lean --task "تحليل تغطية الاختبارات"
 
 # وضع الدردشة التفاعلي (مساحة العمل = المجلد الحالي)
-likha --chat
+xcoder --chat
 
 # سرد جميع المهارات المحمّلة مع كلماتها المفتاحية
-likha --skills
+xcoder --skills
 
 # فهرسة مساحة العمل الحالية في .agent/index/
-likha --index
+xcoder --index
 
 # تسجيل درس في tasks/lessons.md
-likha --lesson "تحقق دائمًا من مسارات الملفات قبل الكتابة"
+xcoder --lesson "تحقق دائمًا من مسارات الملفات قبل الكتابة"
 
 # الوضع المستقل بالكامل — يجيب تلقائيًا على جميع المطالبات التفاعلية
-likha --auto --task "إعداد خط أنابيب CI/CD"
+xcoder --auto --task "إعداد خط أنابيب CI/CD"
 
 # تشخيصات وقت التشغيل
-likha --audit-react
-likha --diagnose-live
+xcoder --audit-react
+xcoder --diagnose-live
 ```
 
 يمكن التحكم في وضع الخطة بشكل صريح:
 
 ```bash
 # فرض تشغيل وضع الخطة
-likha --plan --task "مهمة معقدة"
+xcoder --plan --task "مهمة معقدة"
 
 # فرض إيقاف وضع الخطة
-likha --no-plan --task "مهمة سريعة"
+xcoder --no-plan --task "مهمة سريعة"
 
 # التشغيل كحلقة ReAct واحدة (تعطيل تخطيط المراحل)
-likha --single-phase --task "مهمة معقدة"
+xcoder --single-phase --task "مهمة معقدة"
 ```
 
 ### الخيارات الشائعة
@@ -83,8 +83,8 @@ likha --single-phase --task "مهمة معقدة"
 | `--single-phase` | تعطيل تخطيط المراحل والتشغيل كحلقة ReAct واحدة؛ الافتراضي: تخطيط المراحل مفعّل |
 | `--auto` | الوضع المستقل بالكامل — يجيب تلقائيًا بـ"نعم" على جميع المطالبات التفاعلية |
 | `--isolated-workspace` | تشغيل عمليات الأدوات على نسخة معزولة `./workspace-agent` بدلاً من ملفات المشروع الحية؛ الافتراضي: إيقاف |
-| `--engine <name>` | محرّك التنسيق (الافتراضي: `react`). المسجّلون: `react`، `lean`، `langgraph`، `swarm` |
-| `--serve` | تشغيل خادم likha HTTP API |
+| `--engine <name>` | محرّك التنسيق (الافتراضي: `react`). المسجّلون: `react`، `lean`، `simple`، `swarm`، `langgraph`، `agentic`، `brain`، `procedure` |
+| `--serve` | تشغيل خادم xcoder HTTP API |
 | `--ui` | تشغيل خادم API والواجهة الأمامية معًا |
 | `--port <number>` | منفذ خادم API (الافتراضي: 3001) |
 | `--host <address>` | مضيف خادم API (الافتراضي: 0.0.0.0) |
@@ -92,7 +92,7 @@ likha --single-phase --task "مهمة معقدة"
 | `--docker` | استخدام Docker Compose للنشر |
 | `--llm <boolean>` | إرسال مهمة النشر إلى LLM كمهمة devops |
 | `--remote <ip>` | عنوان IP للمضيف البعيد للنشر |
-| `--remote-path <path>` | مسار الدليل البعيد للنشر (الافتراضي: `/opt/likha`) |
+| `--remote-path <path>` | مسار الدليل البعيد للنشر (الافتراضي: `/opt/xcoder`) |
 | `--audit-react` | تشغيل مجموعة سيناريوهات إصلاح الأخطاء المدمجة |
 | `--audit-out <path>` | مسار كتابة تقرير التدقيق بصيغة Markdown |
 | `--diagnose-live` | تشغيل مجموعة تشخيص ReAct ذات نقاطها السبع ضد LLM الحقيقي المُضبط |
@@ -106,13 +106,13 @@ likha --single-phase --task "مهمة معقدة"
 
 ```bash
 # تشغيل خادم API على المنفذ الافتراضي (3001)
-likha --serve
+xcoder --serve
 
 # تشغيل خادم API على منفذ صريح
-likha --serve --port 3001
+xcoder --serve --port 3001
 
 # نص npm المكافئ للأمر نفسه
-npm run likha:api
+npm run xcoder:api
 ```
 
 يمكن أيضًا ضبط المنفذ والمضيف من البيئة:
@@ -130,18 +130,18 @@ XCODER_API_HOST=0.0.0.0
 
 ```bash
 # تشغيل كل من API والواجهة
-likha --ui
+xcoder --ui
 
 # نص npm: API على 3001 + خادم تطوير الواجهة
-npm run likha:ui
+npm run xcoder:ui
 ```
 
 ## اختيار المحرّك
 
-يوفّر likha أربعة محركات تنسيق قابلة للتبديل، جميعها تنفّذ واجهتي `IReactEngine` / `IReactEngineV2`. اختر واحدًا عبر `--engine <name>`:
+يوفّر xcoder ثمانية محركات تنسيق قابلة للتبديل، جميعها تنفّذ واجهتي `IReactEngine` / `IReactEngineV2`. اختر واحدًا عبر `--engine <name>`:
 
 ```bash
-likha --engine <name> --task "سرد جميع ملفات TypeScript داخل src/"
+xcoder --engine <name> --task "سرد جميع ملفات TypeScript داخل src/"
 ```
 
 | المحرّك | اسم التسجيل | الوصف |
@@ -150,6 +150,10 @@ likha --engine <name> --task "سرد جميع ملفات TypeScript داخل src
 | **LeanEngine** | `lean` | حلقة ReAct مركّزة ومكتفية بذاتها؛ تدعم دورة الحياة V2 |
 | **LangGraphEngine** | `langgraph` | حلقة ReAct مبنية على StateGraph من `@langchain/langgraph`؛ تدعم دورة الحياة V2 |
 | **SwarmEngine** | `swarm` | تنسيق swarm موازٍ مع تحليل WBS وتوزيع وكلاء متزامنين |
+| **SimpleReactEngine** | `simple` | حلقة ReAct بسيطة بدون وضع Plan أو تخطيط المراحل أو إعادة محاولة التحقق من الأهداف |
+| **AgenticEngine** | `agentic` | حلقة ReAct وكيلية حتمية مع ThinkFn قابل للحقن |
+| **BrainEngine** | `brain` | يوجّه المهمة عبر ≥2 أدوار عبر MultiRoleRouter المشترك |
+| **ProcedureEngine** | `procedure` | توليد إجراء من خطوتين مع تنفيذ محلي للخطوات |
 
 تُسجَّل المحركات في `src/core/engine/EngineRegistry.ts` عبر نمط المصنع. يمكن إضافة تنفيذات جديدة عبر `registerEngine("name", factory)` دون تعديل CLI أو API.
 
@@ -176,10 +180,10 @@ npm run typecheck
 التدقيق المدمج (مجموعة سيناريوهات إصلاح الأخطاء) والتشخيص المباشر:
 
 ```bash
-likha --audit-react
-likha --audit-out reports/my-audit.md
-likha --diagnose-live
-likha --diagnose-out reports/my-diagnostics.md
+xcoder --audit-react
+xcoder --audit-out reports/my-audit.md
+xcoder --diagnose-live
+xcoder --diagnose-out reports/my-diagnostics.md
 ```
 
 ## الخطوات التالية

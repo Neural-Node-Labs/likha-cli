@@ -1,15 +1,15 @@
 <!-- ronin:version 1 | ronin:task task-eedb5e | ronin:updated 2026-08-11T16:16:09.127Z | ronin:subtask code-st-7639c0 -->
-# likha — Paggamit
+# xcoder — Paggamit
 
-Gabay ito sa pag-invoke ng likha CLI, pagpapatakbo ng mga task, paggamit ng API server at UI, pagpili ng orchestration engine, at pagpapatakbo ng mga test.
+Gabay ito sa pag-invoke ng xcoder CLI, pagpapatakbo ng mga task, paggamit ng API server at UI, pagpili ng orchestration engine, at pagpapatakbo ng mga test.
 
 ## CLI Syntax
 
 ```bash
-likha [task] [options]
+xcoder [task] [options]
 ```
 
-Ang positional na `[task]` argument ay katumbas ng `--task <description>`. Pagkatapos mag-build, ang CLI ay nasa `dist/cli/index.js`; parehong tumuturo doon ang mga npm scripts at ang global na `likha` binary.
+Ang positional na `[task]` argument ay katumbas ng `--task <description>`. Pagkatapos mag-build, ang CLI ay nasa `dist/cli/index.js`; parehong tumuturo doon ang mga npm scripts at ang global na `xcoder` binary.
 
 Mga karaniwang entry point:
 
@@ -30,42 +30,42 @@ Ang pangunahing task runner at iba pang agent commands ay gumagana sa pamamagita
 
 ```bash
 # Positional task (katumbas ng --task)
-likha "Refactor the authentication module to use JWT tokens"
+xcoder "Refactor the authentication module to use JWT tokens"
 
 # Explicit task option gamit ang lean engine
-likha --engine lean --task "Analyze the test coverage"
+xcoder --engine lean --task "Analyze the test coverage"
 
 # Interactive chat mode (workspace = kasalukuyang folder)
-likha --chat
+xcoder --chat
 
 # Ilista ang lahat ng na-load na skills at ang kanilang mga trigger keywords
-likha --skills
+xcoder --skills
 
 # I-index ang kasalukuyang workspace papunta sa .agent/index/
-likha --index
+xcoder --index
 
 # Magtala ng lesson sa tasks/lessons.md
-likha --lesson "Always validate file paths before writing"
+xcoder --lesson "Always validate file paths before writing"
 
 # Fully autonomous mode — awtomatikong sinasagot ang LAHAT ng interactive prompts
-likha --auto --task "Set up CI/CD pipeline"
+xcoder --auto --task "Set up CI/CD pipeline"
 
 # Runtime diagnostics
-likha --audit-react
-likha --diagnose-live
+xcoder --audit-react
+xcoder --diagnose-live
 ```
 
 Ang plan mode ay maaaring kontrolin nang tahasan:
 
 ```bash
 # Puwersahang i-on ang Plan Mode
-likha --plan --task "Complex task"
+xcoder --plan --task "Complex task"
 
 # Puwersahang i-off ang Plan Mode
-likha --no-plan --task "Quick task"
+xcoder --no-plan --task "Quick task"
 
 # Patakbuhin bilang isang solong ReAct loop (i-disable ang phase planning)
-likha --single-phase --task "Complex task"
+xcoder --single-phase --task "Complex task"
 ```
 
 ## API Server at UI
@@ -76,13 +76,13 @@ Ang Express-based API server ay may mga route sa ilalim ng `/api/v1` (task execu
 
 ```bash
 # Simulan ang API server sa default port (3001)
-likha --serve
+xcoder --serve
 
 # Simulan ang API server sa explicit port
-likha --serve --port 3001
+xcoder --serve --port 3001
 
 # npm script wrapper para sa parehong command
-npm run likha:api
+npm run xcoder:api
 ```
 
 Ang port at host ay maaari ding manggaling sa environment:
@@ -100,18 +100,18 @@ Ang React UI (Vite + TypeScript) ay tumatakbo kasama ng API server:
 
 ```bash
 # Simulan ang parehong API at UI
-likha --ui
+xcoder --ui
 
 # npm script wrapper: API sa 3001 + UI dev server
-npm run likha:ui
+npm run xcoder:ui
 ```
 
 ## Pagpili ng Engine
 
-Ang likha ay may apat na interchangeable orchestration engines, lahat ay nagpapatupad ng `IReactEngine` / `IReactEngineV2` interfaces. Pumili ng isa gamit ang `--engine <name>`:
+Ang xcoder ay may walo na interchangeable orchestration engines, lahat ay nagpapatupad ng `IReactEngine` / `IReactEngineV2` interfaces. Pumili ng isa gamit ang `--engine <name>`:
 
 ```bash
-likha --engine <name> --task "List all TypeScript files in src/"
+xcoder --engine <name> --task "List all TypeScript files in src/"
 ```
 
 | Engine | Registration Name | Paglalarawan |
@@ -120,6 +120,10 @@ likha --engine <name> --task "List all TypeScript files in src/"
 | **LeanEngine** | `lean` | Nakatutok at self-contained ReAct loop; sinusuportahan ang V2 lifecycle |
 | **LangGraphEngine** | `langgraph` | ReAct loop na binuo sa `@langchain/langgraph`'s StateGraph; sinusuportahan ang V2 lifecycle |
 | **SwarmEngine** | `swarm` | Parallel swarm orchestration na may WBS decomposition at concurrent agent dispatch |
+| **SimpleReactEngine** | `simple` | Minimal na ReAct loop na walang Plan Mode, Phase Planning, o goal-validation retry |
+| **AgenticEngine** | `agentic` | Deterministic na agentic ReAct loop na may injectable na ThinkFn |
+| **BrainEngine** | `brain` | Niruruta ang isang task sa ≥2 roles sa pamamagitan ng shared MultiRoleRouter |
+| **ProcedureEngine** | `procedure` | Two-step na procedure generation kasama ang local step execution |
 
 Ang mga engine ay nirerehistro sa `src/core/engine/EngineRegistry.ts` sa pamamagitan ng factory pattern. Ang mga bagong implementation ay maaaring idagdag gamit ang `registerEngine("name", factory)` — walang kinakailangang pagbabago sa CLI o API.
 

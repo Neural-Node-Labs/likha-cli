@@ -1,17 +1,17 @@
-<!-- ronin:version 6 | ronin:task task-ae5e2e | ronin:updated 2026-08-11T17:04:11.022Z | ronin:subtask code-st-d23750 -->
-# likha — Utilisation
+﻿<!-- ronin:version 6 | ronin:task task-ae5e2e | ronin:updated 2026-08-11T17:04:11.022Z | ronin:subtask code-st-d23750 -->
+# xcoder â€” Utilisation
 
-Comment invoquer le CLI likha, exécuter des tâches, piloter le serveur API et l'interface, choisir un moteur d'orchestration et exécuter des tests.
+Comment invoquer le CLI xcoder, exÃ©cuter des tÃ¢ches, piloter le serveur API et l'interface, choisir un moteur d'orchestration et exÃ©cuter des tests.
 
 ## Syntaxe CLI
 
 ```bash
-likha [task] [options]
+xcoder [task] [options]
 ```
 
-L'argument positionnel `[task]` équivaut à `--task <description>`. Après une compilation, le CLI se trouve dans `dist/cli/index.js`; les scripts npm et le binaire global `likha` y pointent tous deux.
+L'argument positionnel `[task]` Ã©quivaut Ã  `--task <description>`. AprÃ¨s une compilation, le CLI se trouve dans `dist/cli/index.js`; les scripts npm et le binaire global `xcoder` y pointent tous deux.
 
-Points d'entrée courants:
+Points d'entrÃ©e courants:
 
 ```bash
 # Run a task through the built CLI
@@ -26,119 +26,123 @@ node dist/cli/index.js
 
 ## Commandes principales
 
-Le principal exécuteur de tâches et les commandes de l'agent fonctionnent via l'argument positionnel de tâche ou `--task`:
+Le principal exÃ©cuteur de tÃ¢ches et les commandes de l'agent fonctionnent via l'argument positionnel de tÃ¢che ou `--task`:
 
 ```bash
 # Positional task (equivalent to --task)
-likha "Refactoriser le module d'authentification pour utiliser des jetons JWT"
+xcoder "Refactoriser le module d'authentification pour utiliser des jetons JWT"
 
 # Explicit task option with the lean engine
-likha --engine lean --task "Analyser la couverture des tests"
+xcoder --engine lean --task "Analyser la couverture des tests"
 
 # Interactive chat mode (workspace = current folder)
-likha --chat
+xcoder --chat
 
 # List all loaded skills and their trigger keywords
-likha --skills
+xcoder --skills
 
 # Index the current workspace into .agent/index/
-likha --index
+xcoder --index
 
 # Record a lesson to tasks/lessons.md
-likha --lesson "Toujours valider les chemins de fichiers avant d'écrire"
+xcoder --lesson "Toujours valider les chemins de fichiers avant d'Ã©crire"
 
-# Fully autonomous mode — auto-answers ALL interactive prompts
-likha --auto --task "Configurer un pipeline CI/CD"
+# Fully autonomous mode â€” auto-answers ALL interactive prompts
+xcoder --auto --task "Configurer un pipeline CI/CD"
 
 # Runtime diagnostics
-elikha --audit-react
-likha --diagnose-live
+xcoder --audit-react
+xcoder --diagnose-live
 ```
 
-Le mode Plan est contrôlé explicitement:
+Le mode Plan est contrÃ´lÃ© explicitement:
 
 ```bash
 # Force Plan Mode on
-likha --plan --task "Tâche complexe"
+xcoder --plan --task "TÃ¢che complexe"
 
 # Force Plan Mode off
-likha --no-plan --task "Tâche rapide"
+xcoder --no-plan --task "TÃ¢che rapide"
 
 # Run as a single ReAct loop (disable phase planning)
-likha --single-phase --task "Tâche complexe"
+xcoder --single-phase --task "TÃ¢che complexe"
 ```
 
 ## Serveur API et interface
 
 ### Serveur API
 
-Le serveur API basé sur Express expose des routes sous `/api/v1` (exécution de tâches, plans, télémétrie, compétences, historique des tâches, rapports de phase, WBS et gestion des utilisateurs):
+Le serveur API basÃ© sur Express expose des routes sous `/api/v1` (exÃ©cution de tÃ¢ches, plans, tÃ©lÃ©mÃ©trie, compÃ©tences, historique des tÃ¢ches, rapports de phase, WBS et gestion des utilisateurs):
 
 ```bash
 # Start the API server on the default port (3001)
-likha --serve
+xcoder --serve
 
 # Start the API server on an explicit port
-likha --serve --port 3001
+xcoder --serve --port 3001
 
 # npm script wrapper for the same command
-npm run likha:api
+npm run xcoder:api
 ```
 
-Le port et l'hôte peuvent aussi provenir de l'environnement:
+Le port et l'hÃ´te peuvent aussi provenir de l'environnement:
 
 ```env
 XCODER_API_PORT=3001
 XCODER_API_HOST=0.0.0.0
 ```
 
-Si `XCODER_API_KEY` est définie, tous les points de terminaison `/api/v1/*` (sauf health/login/register/user-count) exigent `Authorization: Bearer <XCODER_API_KEY>`. Si elle n'est pas définie, l'API s'exécute sans authentification et enregistre un avertissement au démarrage.
+Si `XCODER_API_KEY` est dÃ©finie, tous les points de terminaison `/api/v1/*` (sauf health/login/register/user-count) exigent `Authorization: Bearer <XCODER_API_KEY>`. Si elle n'est pas dÃ©finie, l'API s'exÃ©cute sans authentification et enregistre un avertissement au dÃ©marrage.
 
 ### Interface
 
-L'interface React (Vite + TypeScript) s'exécute aux côtés du serveur API:
+L'interface React (Vite + TypeScript) s'exÃ©cute aux cÃ´tÃ©s du serveur API:
 
 ```bash
 # Start both API and UI
-likha --ui
+xcoder --ui
 
 # npm script wrapper: API on 3001 + UI dev server
-npm run likha:ui
+npm run xcoder:ui
 ```
 
 ## Choix du moteur
 
-likha est livré avec quatre moteurs d'orchestration interchangeables, tous implémentant les interfaces `IReactEngine` / `IReactEngineV2`. Sélectionnez-en un avec `--engine <name>`:
+xcoder est livrÃ© avec huit moteurs d'orchestration interchangeables, tous implÃ©mentant les interfaces `IReactEngine` / `IReactEngineV2`. SÃ©lectionnez-en un avec `--engine <name>`:
 
 ```bash
-likha --engine <name> --task "Lister tous les fichiers TypeScript dans src/"
+xcoder --engine <name> --task "Lister tous les fichiers TypeScript dans src/"
 ```
 
 | Moteur | Nom d'enregistrement | Description |
 |---|---|---|
-| **ReActOrchestrator** | `react` (par défaut) | Moteur complet avec mode Plan, planification par phases, délégation aux sous-agents, validation des objectifs et auto-réparation |
-| **LeanEngine** | `lean` | Boucle ReAct ciblée et autonome; prend en charge le cycle de vie V2 |
+| **ReActOrchestrator** | `react` (par dÃ©faut) | Moteur complet avec mode Plan, planification par phases, dÃ©lÃ©gation aux sous-agents, validation des objectifs et auto-rÃ©paration |
+| **LeanEngine** | `lean` | Boucle ReAct ciblÃ©e et autonome; prend en charge le cycle de vie V2 |
 | **LangGraphEngine** | `langgraph` | Boucle ReAct construite sur StateGraph de `@langchain/langgraph`; prend en charge le cycle de vie V2 |
-| **SwarmEngine** | `swarm` | Orchestration d'essaim en parallèle avec décomposition WBS et envoi concurrent d'agents |
+| **SwarmEngine** | `swarm` | Orchestration d'essaim en parallÃ¨le avec dÃ©composition WBS et envoi concurrent d'agents |
+| **SimpleReactEngine** | `simple` | Boucle ReAct minimale sans mode Plan, planification par phases ni nouvelle tentative de validation des objectifs |
+| **AgenticEngine** | `agentic` | Boucle ReAct agentique dÃ©terministe avec un ThinkFn injectable |
+| **BrainEngine** | `brain` | Achemine une tÃ¢che Ã  travers â‰¥2 rÃ´les via le MultiRoleRouter partagÃ© |
+| **ProcedureEngine** | `procedure` | GÃ©nÃ©ration de procÃ©dure en deux Ã©tapes plus exÃ©cution locale des Ã©tapes |
 
-Les moteurs sont enregistrés dans `src/core/engine/EngineRegistry.ts` via un modèle de fabrique. De nouvelles implémentations peuvent être ajoutées avec `registerEngine("name", factory)` — aucune modification CLI ou API requise.
+Les moteurs sont enregistrÃ©s dans `src/core/engine/EngineRegistry.ts` via un modÃ¨le de fabrique. De nouvelles implÃ©mentations peuvent Ãªtre ajoutÃ©es avec `registerEngine("name", factory)` â€” aucune modification CLI ou API requise.
 
 ## Tests
 
-Exécutez la suite de tests complète (Vitest):
+ExÃ©cutez la suite de tests complÃ¨te (Vitest):
 
 ```bash
 npm test
 ```
 
-Ré-exécutez les tests en mode surveillance pendant le développement:
+RÃ©-exÃ©cutez les tests en mode surveillance pendant le dÃ©veloppement:
 
 ```bash
 npm run test:watch
 ```
 
-## Étapes suivantes
+## Ã‰tapes suivantes
 
-- [readme.md](./readme.md) — présentation et démarrage rapide
-- [setup.md](./setup.md) — installation et configuration de l'environnement
-- [blurprint.md](./blurprint.md) — architecture et points d'extension
+- [readme.md](./readme.md) â€” prÃ©sentation et dÃ©marrage rapide
+- [setup.md](./setup.md) â€” installation et configuration de l'environnement
+- [blurprint.md](./blurprint.md) â€” architecture et points d'extension

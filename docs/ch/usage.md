@@ -1,15 +1,15 @@
 <!-- ronin:version 1 | ronin:task task-5e8fe0 | ronin:updated 2026-08-11T16:38:44.515Z | ronin:subtask code-st-be6a3a -->
-# likha 使用指南
+# xcoder 使用指南
 
-本文档说明如何调用 likha CLI、运行任务、驱动 API 服务器与 UI、选择编排引擎，以及运行测试与诊断。
+本文档说明如何调用 xcoder CLI、运行任务、驱动 API 服务器与 UI、选择编排引擎，以及运行测试与诊断。
 
 ## CLI 调用
 
 ```bash
-likha [task] [options]
+xcoder [task] [options]
 ```
 
-位置参数 `[task]` 等价于 `--task <description>`。构建之后，CLI 位于 `dist/cli/index.js`；npm 脚本与全局 `likha` 命令都指向该入口。
+位置参数 `[task]` 等价于 `--task <description>`。构建之后，CLI 位于 `dist/cli/index.js`；npm 脚本与全局 `xcoder` 命令都指向该入口。
 
 常用入口方式：
 
@@ -30,42 +30,42 @@ node dist/cli/index.js
 
 ```bash
 # 位置任务参数（等价于 --task）
-likha "重构认证模块以使用 JWT 令牌"
+xcoder "重构认证模块以使用 JWT 令牌"
 
 # 显式任务选项，并使用 lean 引擎
-likha --engine lean --task "分析测试覆盖率"
+xcoder --engine lean --task "分析测试覆盖率"
 
 # 交互式聊天空（工作区 = 当前文件夹）
-likha --chat
+xcoder --chat
 
 # 列出所有已加载技能及其触发关键词
-likha --skills
+xcoder --skills
 
 # 将当前工作区建立索引到 .agent/index/
-likha --index
+xcoder --index
 
 # 记录一条经验到 tasks/lessons.md
-likha --lesson "写入文件之前始终校验文件路径"
+xcoder --lesson "写入文件之前始终校验文件路径"
 
 # 全自动模式 — 自动回答所有交互式提示
-likha --auto --task "搭建 CI/CD 流水线"
+xcoder --auto --task "搭建 CI/CD 流水线"
 
 # 运行时诊断
-likha --audit-react
-likha --diagnose-live
+xcoder --audit-react
+xcoder --diagnose-live
 ```
 
 计划模式可以显式控制：
 
 ```bash
 # 强制启用计划模式
-likha --plan --task "复杂任务"
+xcoder --plan --task "复杂任务"
 
 # 强制关闭计划模式
-likha --no-plan --task "快速任务"
+xcoder --no-plan --task "快速任务"
 
 # 作为单个 ReAct 循环运行（关闭阶段规划）
-likha --single-phase --task "复杂任务"
+xcoder --single-phase --task "复杂任务"
 ```
 
 ### 常用选项
@@ -83,8 +83,8 @@ likha --single-phase --task "复杂任务"
 | `--single-phase` | 关闭阶段规划，作为单个 ReAct 循环运行；默认阶段规划开启 |
 | `--auto` | 全自动模式，对所有交互式提示自动回答“是” |
 | `--isolated-workspace` | 在隔离的 `./workspace-agent` 副本中运行工具操作；默认关闭 |
-| `--engine <name>` | 编排引擎（默认：`react`）。已注册：`react`、`lean`、`langgraph`、`swarm` |
-| `--serve` | 启动 likha HTTP API 服务器 |
+| `--engine <name>` | 编排引擎（默认：`react`）。已注册：`react`、`lean`、`simple`、`swarm`、`langgraph`、`agentic`、`brain`、`procedure` |
+| `--serve` | 启动 xcoder HTTP API 服务器 |
 | `--ui` | 同时启动 API 服务器与 UI 前端 |
 | `--port <number>` | API 服务器端口（默认：3001） |
 | `--host <address>` | API 服务器主机（默认：0.0.0.0） |
@@ -92,7 +92,7 @@ likha --single-phase --task "复杂任务"
 | `--docker` | 使用 Docker Compose 部署 |
 | `--llm <boolean>` | 将部署任务作为 devops 任务发送给 LLM |
 | `--remote <ip>` | 远程部署主机 IP |
-| `--remote-path <path>` | 远程部署目录（默认：`/opt/likha`） |
+| `--remote-path <path>` | 远程部署目录（默认：`/opt/xcoder`） |
 | `--audit-react` | 运行内置 bug 修复场景测试集 |
 | `--audit-out <path>` | 审计报告 Markdown 输出路径 |
 | `--diagnose-live` | 运行 7 项 ReAct 诊断套件（针对真实配置的 LLM） |
@@ -106,13 +106,13 @@ likha --single-phase --task "复杂任务"
 
 ```bash
 # 在默认端口（3001）启动 API 服务器
-likha --serve
+xcoder --serve
 
 # 在显式端口启动 API 服务器
-likha --serve --port 3001
+xcoder --serve --port 3001
 
 # 等价的 npm 脚本
-npm run likha:api
+npm run xcoder:api
 ```
 
 端口与主机也可以通过环境变量配置：
@@ -130,18 +130,18 @@ React UI（Vite + TypeScript）与 API 服务器一起运行：
 
 ```bash
 # 同时启动 API 与 UI
-likha --ui
+xcoder --ui
 
 # npm 脚本包装：API 在 3001 + UI 开发服务器
-npm run likha:ui
+npm run xcoder:ui
 ```
 
 ## 引擎选择
 
-likha 内置四个可互换的编排引擎，均实现 `IReactEngine` / `IReactEngineV2` 接口。通过 `--engine <name>` 选择：
+xcoder 内置八个可互换的编排引擎，均实现 `IReactEngine` / `IReactEngineV2` 接口。通过 `--engine <name>` 选择：
 
 ```bash
-likha --engine <name> --task "列出 src/ 下的所有 TypeScript 文件"
+xcoder --engine <name> --task "列出 src/ 下的所有 TypeScript 文件"
 ```
 
 | 引擎 | 注册名 | 说明 |
@@ -150,6 +150,10 @@ likha --engine <name> --task "列出 src/ 下的所有 TypeScript 文件"
 | **LeanEngine** | `lean` | 聚焦的自包含 ReAct 循环，支持 V2 生命周期 |
 | **LangGraphEngine** | `langgraph` | 基于 `@langchain/langgraph` 的 StateGraph 构建的 ReAct 循环，支持 V2 生命周期 |
 | **SwarmEngine** | `swarm` | 并行 swarm 编排，带 WBS 分解与并发代理分发 |
+| **SimpleReactEngine** | `simple` | 极简 ReAct 循环，无 Plan 模式、阶段规划或目标验证重试 |
+| **AgenticEngine** | `agentic` | 带可注入 ThinkFn 的确定性 agentic ReAct 循环 |
+| **BrainEngine** | `brain` | 通过共享 MultiRoleRouter 将任务路由到 ≥2 个角色 |
+| **ProcedureEngine** | `procedure` | 两步式流程生成加本地步骤执行 |
 
 引擎在 `src/core/engine/EngineRegistry.ts` 中通过工厂模式注册。可以通过 `registerEngine("name", factory)` 添加新实现，无需修改 CLI 或 API。
 
@@ -176,10 +180,10 @@ npm run typecheck
 内置 ReAct 审计（bug 修复场景测试集）与实时诊断：
 
 ```bash
-likha --audit-react
-likha --audit-out reports/my-audit.md
-likha --diagnose-live
-likha --diagnose-out reports/my-diagnostics.md
+xcoder --audit-react
+xcoder --audit-out reports/my-audit.md
+xcoder --diagnose-live
+xcoder --diagnose-out reports/my-diagnostics.md
 ```
 
 ## 下一步
